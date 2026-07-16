@@ -3,10 +3,13 @@
 import yfinance as yf
 
 
-def load_nikkei():
+def load_nikkei(period, interval):
 
-    ticker = yf.Ticker("^N225")
+    nikkei = yf.Ticker("^N225")
 
-    data = ticker.history(period="3mo")
+    data = nikkei.history(
+        period=period,
+        interval=interval
+    )
 
     return data
