@@ -7,9 +7,9 @@ def judge_color(ha):
     for _, row in ha.iterrows():
 
         if row["HA_Close"] > row["HA_Open"]:
-            colors.append("Blue")
+            colors.append("青")
         else:
-            colors.append("Red")
+            colors.append("赤")
 
     return colors
 
