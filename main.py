@@ -1,4 +1,5 @@
 
+from strategy import judge_strategy
 from trend import judge_trend
 from data_loader import load_nikkei
 from heikin_ashi import calculate_heikin_ashi
@@ -11,7 +12,7 @@ pd.set_option("display.width", 200)
 
 
 
-print("竹林の賢人 Version 1.1   開発版")
+print("竹林の賢人 Version 1.3   開発版")
 
 # =================
 # 日経225データ取得
@@ -125,3 +126,61 @@ print(day_ha[
 ].tail(3))
 
 
+print()
+print("=" * 40)
+print("竹林の賢人 相場サマリー")
+print("=" * 40)
+
+print(f"月足 : {month_trends[-1]}")
+print(f"週足 : {week_trends[-1]}")
+print(f"日足 : {day_trends[-1]}")
+
+print()
+
+today = day_ha.iloc[-1]
+
+print(f"現在HA終値 : {today['HA_Close']:.0f}")
+print(f"High5MA    : {today['High5MA']:.0f}")
+print(f"Low5MA     : {today['Low5MA']:.0f}")
+
+print()
+
+high_diff = today["High5MA"] - today["HA_Close"]
+low_diff = today["HA_Close"] - today["Low5MA"]
+
+
+if high_diff >= 0:
+    print(f"↑ あと {high_diff:.0f} 円")
+else:
+    print(f"↑ {abs(high_diff):.0f} 円 上")
+
+print()
+
+
+if low_diff >= 0:
+    print(f"↑ {low_diff:.0f} 円 上")
+else:
+    print(f"↓ {abs(low_diff):.0f} 円 下")
+
+
+print()
+
+if today["HA_Close"] > today["High5MA"]:
+    print("現在位置 : High5MAより上")
+elif today["HA_Close"] < today["Low5MA"]:
+    print("現在位置 : Low5MAより下")
+else:
+    print("現在位置 : High5MAとLow5MAの間")
+
+
+strategy = judge_strategy(
+    month_trends[-1],
+    week_trends[-1],
+    day_trends[-1]
+)
+
+
+print()
+print("判定")
+print()
+print(strategy)
