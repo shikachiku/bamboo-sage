@@ -12,7 +12,7 @@ pd.set_option("display.width", 200)
 
 
 
-print("竹林の賢人 Version 1.3   開発版")
+print("竹林の賢人 Version 1.4   開発版")
 
 # =================
 # 日経225データ取得
@@ -173,14 +173,32 @@ else:
     print("現在位置 : High5MAとLow5MAの間")
 
 
-strategy = judge_strategy(
+position = "MID"
+
+if today["HA_Close"] > today["High5MA"]:
+    position = "HIGH"
+
+elif today["HA_Close"] < today["Low5MA"]:
+    position = "LOW"
+
+strategy, reasons = judge_strategy(
     month_trends[-1],
     week_trends[-1],
-    day_trends[-1]
+    day_trends[-1],
+    position
 )
 
 
-print()
+
 print("判定")
 print()
 print(strategy)
+
+print()
+print("理由")
+
+for r in reasons:
+    print(r)
+
+
+
