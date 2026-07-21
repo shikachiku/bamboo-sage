@@ -1,4 +1,5 @@
 
+from adx import calculate_adx
 from strategy import judge_strategy
 from trend import judge_trend
 from data_loader import load_nikkei
@@ -12,7 +13,7 @@ pd.set_option("display.width", 200)
 
 
 
-print("竹林の賢人 Version 1.4   開発版")
+print("竹林の賢人 Version 1.6   開発版")
 
 # =================
 # 日経225データ取得
@@ -72,6 +73,9 @@ day_data = load_nikkei("6mo", "1d")
 month_ha = calculate_heikin_ashi(month_data)
 week_ha = calculate_heikin_ashi(week_data)
 day_ha = calculate_heikin_ashi(day_data)
+
+month_adx = calculate_adx(month_data)
+
 
 month_colors = judge_color(month_ha)
 week_colors = judge_color(week_ha)
@@ -199,6 +203,18 @@ print("理由")
 
 for r in reasons:
     print(r)
+
+
+print()
+
+print("【月足 ADX】")
+
+print(
+    month_adx[
+        ["ADX", "+DI", "-DI"]
+    ].tail(3)
+)
+
 
 
 

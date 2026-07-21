@@ -1,15 +1,23 @@
+# =========================================
+# Bamboo Sage 表示ユーティリティ
+# =========================================
+
+def line(length=40, char="="):
+    print(char * length)
 
 
-def judge_color(ha):
+def title(text):
+    line()
+    print(text)
+    line()
 
-    colors = []
 
-    for _, row in ha.iterrows():
+def section(text):
+    print()
+    line()
+    print(text)
+    line()
 
-        if row["HA_Close"] > row["HA_Open"]:
-            colors.append("青")
-        else:
-            colors.append("赤")
 
-    return colors
-
+def blank():
+    print()
