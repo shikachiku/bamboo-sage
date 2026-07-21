@@ -7,8 +7,7 @@ from pathlib import Path
 
 from color import title
 
-from config import SYMBOL
-
+from symbol_loader import load_symbols
 from folder_manager import (
     RAW_DIR,
     LIVE_DIR,
@@ -41,12 +40,25 @@ TIMEFRAMES = [
 ]
 
 
-def update_one(timeframe):
-    
+def update_one(symbol, timeframe):
+
     start = time.perf_counter()
 
-    raw_file = RAW_DIR / f"{timeframe}.csv"
-    live_file = LIVE_DIR / f"{timeframe}.csv"
+    folder = symbol["Folder"]
+
+    raw_file = (
+        RAW_DIR /
+        folder /
+        "raw" /
+        f"{timeframe}.csv"
+    )
+
+    live_file = (
+        RAW_DIR /
+        folder /
+        "live" /
+        f"{timeframe}.csv"
+    )
 
     old_df = load_existing(raw_file)
 
@@ -60,7 +72,6 @@ def update_one(timeframe):
 
         print("Last history :", last_datetime)
 
-    # 履歴が古い場合はフルダウンロード
     if history_too_old(
         timeframe,
         last_datetime,
@@ -91,14 +102,12 @@ def update_one(timeframe):
         title(f"{timeframe} Update Start")
         log(f"{timeframe} Update Start")
 
-
-
-
         for attempt in range(3):
 
             try:
 
                 message = download_from_tv(
+                    symbol["TradingView"],
                     timeframe,
                     bars,
                 )
@@ -180,24 +189,37 @@ def main():
     print("=" * 60)
     print("UPDATE ENGINE START")
     print("=" * 60)
+
     log("========================================")
     log("UPDATE ENGINE START")
     log("========================================")
 
-    for tf in TIMEFRAMES:
+    symbols = load_symbols()
+
+    for symbol in symbols:
 
         print()
-        print("-" * 60)
-        print(f"{tf} Updating")
-        print("-" * 60)
+        print("=" * 60)
+        print(symbol["Name"])
+        print("=" * 60)
 
-        update_one(tf)
+        for tf in TIMEFRAMES:
 
+            print()
+            print("-" * 60)
+            print(f"{tf} Updating")
+            print("-" * 60)
+
+            update_one(
+                symbol,
+                tf,
+            )
     print()
     print("=" * 40)
     print("UPDATE ENGINE COMPLETED")
-    log("UPDATE ENGINE COMPLETED")
     print("=" * 40)
+
+    log("UPDATE ENGINE COMPLETED")
 
     print()
     print("Running Data Checker...")

@@ -1,7 +1,6 @@
 import time
 from websocket import create_connection
 
-from config import SYMBOL
 
 from tv_protocol import (
     new_sessions,
@@ -19,7 +18,11 @@ from tv_symbols import resolve_symbol
 URL = "wss://data.tradingview.com/socket.io/websocket"
 
 
-def download_from_tv(timeframe, bars):
+def download_from_tv(
+    symbol,
+    timeframe,
+    bars,
+):
 
     chart_session, quote_session = new_sessions()
 
@@ -48,13 +51,13 @@ def download_from_tv(timeframe, bars):
         add_symbol(
             ws,
             quote_session,
-            SYMBOL,
+            symbol,
         )
 
         resolve_symbol(
             ws,
             chart_session,
-            SYMBOL,
+            symbol,
         )
 
         print("Symbol request sent")
@@ -62,9 +65,11 @@ def download_from_tv(timeframe, bars):
         series_sent = False
 
         buffer = ""
+
         timeout = time.time() + 15
 
         while True:
+
             if time.time() > timeout:
 
                 raise TimeoutError(
@@ -77,7 +82,9 @@ def download_from_tv(timeframe, bars):
                 continue
 
             if "~h~" in msg:
+
                 ws.send(msg)
+
                 continue
 
             buffer += msg

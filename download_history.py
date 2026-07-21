@@ -1,7 +1,7 @@
 from pathlib import Path
 from websocket import create_connection
 
-from config import SYMBOL
+from symbol_loader import load_symbols
 
 from folder_manager import (
     create_data_folders,
@@ -42,7 +42,7 @@ TIMEFRAMES = [
 ]
 
 
-def download_one(timeframe):
+def download_one(symbol, timeframe):
 
     ws = None
 
@@ -58,7 +58,7 @@ def download_one(timeframe):
             ],
         )
 
-        title(f"{timeframe} Download Start")
+        title(f"{symbol['Name']} {timeframe} Download Start")
 
         send_auth(ws)
 
@@ -75,13 +75,13 @@ def download_one(timeframe):
         add_symbol(
             ws,
             quote_session,
-            SYMBOL,
+            symbol["TradingView"],
         )
 
         resolve_symbol(
             ws,
             chart_session,
-            SYMBOL,
+            symbol["TradingView"],
         )
 
         print("Symbol request sent")
@@ -98,7 +98,9 @@ def download_one(timeframe):
                 continue
 
             if "~h~" in msg:
+
                 ws.send(msg)
+
                 continue
 
             buffer += msg
@@ -121,6 +123,7 @@ def download_one(timeframe):
                 )
 
                 series_sent = True
+
             if "timescale_update" in buffer:
 
                 try:
@@ -129,10 +132,16 @@ def download_one(timeframe):
                         buffer
                     )
 
-                    filename = (
-                        RAW_DIR /
-                        f"{timeframe}.csv"
+                    folder = Path(
+                        "data"
+                    ) / symbol["Folder"] / "raw"
+
+                    folder.mkdir(
+                        parents=True,
+                        exist_ok=True,
                     )
+
+                    filename = folder / f"{timeframe}.csv"
 
                     save_csv(
                         df,
@@ -140,7 +149,7 @@ def download_one(timeframe):
                     )
 
                     title(
-                        f"{timeframe} Download Finished"
+                        f"{symbol['Name']} {timeframe} Download Finished"
                     )
 
                     print(
@@ -151,10 +160,7 @@ def download_one(timeframe):
 
                 except Exception as e:
 
-                    print(
-                        "DataFrame ERROR"
-                    )
-
+                    print("DataFrame ERROR")
                     print(e)
 
                     break
@@ -162,13 +168,11 @@ def download_one(timeframe):
     except KeyboardInterrupt:
 
         print()
-
         print("Ctrl+C")
 
     except Exception as e:
 
         print()
-
         print("ERROR :", e)
 
     finally:
@@ -178,9 +182,12 @@ def download_one(timeframe):
             close(ws)
 
         title(
-            f"{timeframe} Disconnected"
+            f"{symbol['Name']} {timeframe} Disconnected"
         )
-if __name__ == "__main__":
+        
+        
+        
+def main():
 
     create_data_folders()
 
@@ -189,17 +196,34 @@ if __name__ == "__main__":
     print("History Download")
     print("=" * 60)
 
-    for tf in TIMEFRAMES:
+    symbols = load_symbols()
+
+    for symbol in symbols:
 
         print()
-        print("-" * 60)
-        print(f"{tf} Download")
-        print("-" * 60)
+        print("=" * 60)
+        print(symbol["Name"])
+        print("=" * 60)
 
-        download_one(tf)
+        for tf in TIMEFRAMES:
+
+            print()
+            print("-" * 60)
+            print(f"{tf} Download")
+            print("-" * 60)
+
+            download_one(
+                symbol,
+                tf,
+            )
 
     print()
 
     title(
         "ALL HISTORY DOWNLOAD COMPLETED"
     )
+
+
+if __name__ == "__main__":
+
+    main()
