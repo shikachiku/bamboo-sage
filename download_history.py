@@ -36,6 +36,7 @@ URL = "wss://data.tradingview.com/socket.io/websocket"
 BAR_COUNT = 10000
 
 TIMEFRAMES = [
+    "4H",
     "1D",
     "1W",
     "1M",

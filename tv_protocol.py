@@ -107,6 +107,16 @@ def create_series(
     bars,
 ):
 
+    interval = {
+        "4H": "240",
+        "1D": "1D",
+        "1W": "1W",
+        "1M": "1M",
+    }.get(
+        timeframe,
+        timeframe,
+    )
+
     send(
         ws,
         "create_series",
@@ -115,7 +125,7 @@ def create_series(
             "s1",
             "s1",
             "symbol_1",
-            timeframe,
+            interval,
             bars,
             "",
         ],
