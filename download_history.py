@@ -5,7 +5,6 @@ from symbol_loader import load_symbols
 
 from folder_manager import (
     create_data_folders,
-    RAW_DIR,
 )
 
 from tv_protocol import (
