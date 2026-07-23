@@ -1,6 +1,25 @@
 import os
 import pandas as pd
 
+# ===================================
+# Parameter
+# ===================================
+
+BASE = "data"
+
+SYMBOL = "WHSELFINVEST_JAPAN225CFD"
+
+TIMEFRAMES = [
+    "1M",
+    "1W",
+    "1D",
+    "4H",
+]
+
+
+# ===================================
+# Heikin Ashi
+# ===================================
 
 def calculate_heikin_ashi(data):
 
@@ -25,6 +44,7 @@ def calculate_heikin_ashi(data):
 
     # 2本目以降
     for i in range(1, len(data)):
+
         ha.iloc[i, ha.columns.get_loc("HA_Open")] = (
             ha["HA_Open"].iloc[i - 1]
             + ha["HA_Close"].iloc[i - 1]
@@ -32,75 +52,72 @@ def calculate_heikin_ashi(data):
 
     # 高値
     ha["HA_High"] = pd.concat(
-        [data["High"], ha["HA_Open"], ha["HA_Close"]],
-        axis=1
+        [
+            data["High"],
+            ha["HA_Open"],
+            ha["HA_Close"],
+        ],
+        axis=1,
     ).max(axis=1)
 
     # 安値
     ha["HA_Low"] = pd.concat(
-        [data["Low"], ha["HA_Open"], ha["HA_Close"]],
-        axis=1
+        [
+            data["Low"],
+            ha["HA_Open"],
+            ha["HA_Close"],
+        ],
+        axis=1,
     ).min(axis=1)
-
-    # 色
-    ha["Color"] = "RED"
-    ha.loc[
-        ha["HA_Close"] >= ha["HA_Open"],
-        "Color"
-    ] = "BLUE"
 
     return ha
 
 
-def process_file(input_csv, output_csv):
+# ===================================
+# Process
+# ===================================
+
+def process(tf):
+
+    input_csv = (
+        f"{BASE}/{SYMBOL}/raw/{tf}.csv"
+    )
+
+    output_csv = (
+        f"{BASE}/{SYMBOL}/live/heikin_ashi/{tf}.csv"
+    )
 
     data = pd.read_csv(
         input_csv,
         index_col=0,
-        parse_dates=True
+        parse_dates=True,
     )
 
     ha = calculate_heikin_ashi(data)
 
     os.makedirs(
         os.path.dirname(output_csv),
-        exist_ok=True
+        exist_ok=True,
     )
 
     ha.to_csv(output_csv)
 
-    print(f"Saved -> {output_csv}")
+    print(
+        f"Saved -> {output_csv}"
+    )
 
+
+# ===================================
+# MAIN
+# ===================================
 
 if __name__ == "__main__":
 
-    BASE = "data"
+    for tf in TIMEFRAMES:
 
-    SYMBOL = "WHSELFINVEST_JAPAN225CFD"
-
-    timeframes = [
-        "1M",
-        "1W",
-        "1D",
-        "4H"
-    ]
-
-    for tf in timeframes:
-
-        input_csv = (
-            f"{BASE}/{SYMBOL}/raw/{tf}.csv"
-        )
-
-        output_csv = (
-            f"{BASE}/{SYMBOL}/live/HA_{tf}.csv"
-        )
-
-        process_file(
-            input_csv,
-            output_csv
-        )
+        process(tf)
 
     print()
-    print("===================================")
+    print("==============================")
     print("Heikin Ashi Complete")
-    print("===================================")
+    print("==============================")

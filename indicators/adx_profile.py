@@ -1,20 +1,9 @@
-from history_writer import append_history
-
-# ======================================================
-# Profile Parameter
-# ======================================================
-
-ZONE_LOW = 0.20
-ZONE_LOW_NORMAL = 0.40
-ZONE_NORMAL = 0.60
-ZONE_HIGH_NORMAL = 0.80
-
 import os
 import pandas as pd
 
-# ==========================
+# ==========================================
 # Parameter
-# ==========================
+# ==========================================
 
 BASE = "data"
 
@@ -27,9 +16,19 @@ TIMEFRAMES = [
     "4H",
 ]
 
-# ==========================
+# ==========================================
+# ZONE
+# ==========================================
+
+ZONE_LOW = 0.20
+ZONE_LOW_NORMAL = 0.40
+ZONE_NORMAL = 0.60
+ZONE_HIGH_NORMAL = 0.80
+
+# ==========================================
 # PROFILE
-# ==========================
+# ==========================================
+
 
 def create_profile(adx):
 
@@ -45,40 +44,19 @@ def create_profile(adx):
 
     std = adx["ADX"].std()
 
-    profile = {}
-
-    profile["CURRENT"] = current
-    profile["MIN"] = minimum
-    profile["MAX"] = maximum
-    profile["AVERAGE"] = average
-    profile["MEDIAN"] = median
-    profile["STD"] = std
-
-    profile["RANGE"] = maximum - minimum
-
-    profile["TO_MIN"] = current - minimum
-    profile["TO_MAX"] = maximum - current
-
-    profile["ABOVE_AVG"] = current - average
-
-    # -------------------------
-    # POSITION
-    # -------------------------
-
     if maximum != minimum:
+
         position = (
             current - minimum
         ) / (
             maximum - minimum
         )
+
     else:
+
         position = 0
 
-    profile["POSITION"] = round(position, 3)
-
-    # -------------------------
-    # ZONE
-    # -------------------------
+    # ----------------------------
 
     if position < ZONE_LOW:
 
@@ -100,41 +78,33 @@ def create_profile(adx):
 
         zone = "HIGH"
 
-    profile["ZONE"] = zone
-
-    # -------------------------
-    # TREND
-    # -------------------------
+    # ----------------------------
 
     if current < 20:
 
-        strength = "NONE"
+        trend_strength = "NONE"
 
     elif current < 30:
 
-        strength = "WEAK"
+        trend_strength = "WEAK"
 
     elif current < 40:
 
-        strength = "NORMAL"
+        trend_strength = "NORMAL"
 
     elif current < 50:
 
-        strength = "STRONG"
+        trend_strength = "STRONG"
 
     elif current < 60:
 
-        strength = "VERY_STRONG"
+        trend_strength = "VERY_STRONG"
 
     else:
 
-        strength = "EXTREME"
+        trend_strength = "EXTREME"
 
-    profile["TREND_STRENGTH"] = strength
-
-    # -------------------------
-    # STATE
-    # -------------------------
+    # ----------------------------
 
     if zone == "LOW":
 
@@ -156,19 +126,54 @@ def create_profile(adx):
 
         state = "OVERHEATED"
 
-    profile["STATE"] = state
+    # ----------------------------
+
+    profile = {
+
+        "CURRENT": round(current, 3),
+
+        "MIN": round(minimum, 3),
+
+        "MAX": round(maximum, 3),
+
+        "AVERAGE": round(average, 3),
+
+        "MEDIAN": round(median, 3),
+
+        "STD": round(std, 3),
+
+        "RANGE": round(maximum - minimum, 3),
+
+        "POSITION": round(position, 3),
+
+        "ZONE": zone,
+
+        "TREND_STRENGTH": trend_strength,
+
+        "STATE": state,
+
+        "TO_MIN": round(current - minimum, 3),
+
+        "TO_MAX": round(maximum - current, 3),
+
+        "DISTANCE_TO_LOW": round(position * 100, 1),
+
+        "DISTANCE_TO_HIGH": round((1 - position) * 100, 1),
+
+    }
 
     return profile
 
 
-# ==========================
-# SAVE
-# ==========================
+# ==========================================
+# PROCESS
+# ==========================================
+
 
 def process(tf):
 
     input_csv = (
-        f"{BASE}/{SYMBOL}/live/ADX_{tf}.csv"
+        f"{BASE}/{SYMBOL}/live/adx/{tf}.csv"
     )
 
     output_csv = (
@@ -180,16 +185,8 @@ def process(tf):
         index_col=0,
         parse_dates=True,
     )
-    last_bar = adx.index[-1].strftime("%Y-%m-%d")
 
     profile = create_profile(adx)
-    
-    append_history(
-        SYMBOL,
-        tf,
-        profile,
-        last_bar,
-    )
 
     os.makedirs(
         os.path.dirname(output_csv),
@@ -209,14 +206,12 @@ def process(tf):
         index=False,
     )
 
-    print(
-        f"Saved -> {output_csv}"
-    )
+    print(f"Saved -> {output_csv}")
 
 
-# ==========================
+# ==========================================
 # MAIN
-# ==========================
+# ==========================================
 
 if __name__ == "__main__":
 

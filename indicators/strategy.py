@@ -1,33 +1,177 @@
+import os
+import pandas as pd
 
+# ======================================
+# Parameter
+# ======================================
 
-def judge_strategy(month_trend, week_trend, day_trend, position):
+BASE = "data"
 
-    strategy = "待機"
-    reasons = []
+SYMBOL = "WHSELFINVEST_JAPAN225CFD"
 
-    if month_trend == "青継続":
-        reasons.append("✓ 月足 青継続")
+TIMEFRAMES = [
+    "1M",
+    "1W",
+    "1D",
+    "4H",
+]
 
-    if week_trend.startswith("赤"):
-        reasons.append("✓ 週足 赤継続")
+# ======================================
+# Strategy
+# ======================================
 
-    if day_trend.startswith("赤"):
-        reasons.append("✓ 日足 赤継続")
+def decide(master):
 
-    if position == "LOW":
-        reasons.append("✓ Low5MAより下")
+    score = int(master["AI_SCORE"])
 
-    if month_trend == "青継続":
-        if week_trend.startswith("赤"):
-            if day_trend.startswith("赤"):
-                strategy = "押し目待ち"
+    adx = str(master["ADX_STATE"])
 
-    if month_trend == "青継続":
-        if week_trend.startswith("青"):
-            if day_trend == "青転":
-                strategy = "買い準備"
+    hl = str(master["HIGHLOW_ZONE"])
 
-    if month_trend.startswith("赤"):
-        strategy = "利益確定警戒"
+    hl5 = str(master["HIGHLOW5_ZONE"])
 
-    return strategy, reasons
+    signal = "WAIT"
+
+    confidence = 0
+
+    # ==================================
+    # BUY STRONG
+    # ==================================
+
+    if (
+        adx == "READY"
+        and
+        hl == "★★★★★"
+        and
+        hl5 == "★★★★★"
+    ):
+
+        signal = "BUY_STRONG"
+
+        confidence = 100
+
+    # ==================================
+
+    elif (
+        adx == "READY"
+        and
+        score >= 11
+    ):
+
+        signal = "BUY"
+
+        confidence = 80
+
+    # ==================================
+
+    elif score >= 9:
+
+        signal = "WATCH"
+
+        confidence = 60
+
+    # ==================================
+
+    elif score >= 6:
+
+        signal = "HOLD"
+
+        confidence = 50
+
+    # ==================================
+
+    elif adx == "EXTREME":
+
+        signal = "REDUCE"
+
+        confidence = 40
+
+    # ==================================
+
+    else:
+
+        signal = "SELL"
+
+        confidence = 20
+
+    return {
+
+        "SIGNAL": signal,
+
+        "CONFIDENCE": confidence,
+
+    }
+
+# ======================================
+# Process
+# ======================================
+
+def process(tf):
+
+    master_file = (
+        f"{BASE}/{SYMBOL}/master/{tf}.csv"
+    )
+
+    df = pd.read_csv(master_file)
+
+    master = {}
+
+    for _, row in df.iterrows():
+
+        master[row["ITEM"]] = row["VALUE"]
+
+    result = decide(master)
+
+    out = (
+        f"{BASE}/{SYMBOL}/strategy"
+    )
+
+    os.makedirs(out, exist_ok=True)
+
+    output = (
+        f"{out}/{tf}.csv"
+    )
+
+    strategy = {
+
+        **master,
+
+        **result,
+
+    }
+
+    save = pd.DataFrame(
+
+        strategy.items(),
+
+        columns=[
+            "ITEM",
+            "VALUE",
+        ],
+
+    )
+
+    save.to_csv(
+
+        output,
+
+        index=False,
+
+    )
+
+    print(f"Saved -> {output}")
+
+# ======================================
+# Main
+# ======================================
+
+if __name__ == "__main__":
+
+    for tf in TIMEFRAMES:
+
+        process(tf)
+
+    print()
+    print("==============================")
+    print("STRATEGY Complete")
+    print("==============================")
