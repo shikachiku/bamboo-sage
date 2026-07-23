@@ -1,5 +1,4 @@
-
-
+import os
 import pandas as pd
 
 
@@ -27,8 +26,8 @@ def calculate_heikin_ashi(data):
     # 2本目以降
     for i in range(1, len(data)):
         ha.iloc[i, ha.columns.get_loc("HA_Open")] = (
-            ha["HA_Open"].iloc[i-1]
-            + ha["HA_Close"].iloc[i-1]
+            ha["HA_Open"].iloc[i - 1]
+            + ha["HA_Close"].iloc[i - 1]
         ) / 2
 
     # 高値
@@ -43,8 +42,65 @@ def calculate_heikin_ashi(data):
         axis=1
     ).min(axis=1)
 
+    # 色
+    ha["Color"] = "RED"
+    ha.loc[
+        ha["HA_Close"] >= ha["HA_Open"],
+        "Color"
+    ] = "BLUE"
+
     return ha
 
 
+def process_file(input_csv, output_csv):
+
+    data = pd.read_csv(
+        input_csv,
+        index_col=0,
+        parse_dates=True
+    )
+
+    ha = calculate_heikin_ashi(data)
+
+    os.makedirs(
+        os.path.dirname(output_csv),
+        exist_ok=True
+    )
+
+    ha.to_csv(output_csv)
+
+    print(f"Saved -> {output_csv}")
 
 
+if __name__ == "__main__":
+
+    BASE = "data"
+
+    SYMBOL = "WHSELFINVEST_JAPAN225CFD"
+
+    timeframes = [
+        "1M",
+        "1W",
+        "1D",
+        "4H"
+    ]
+
+    for tf in timeframes:
+
+        input_csv = (
+            f"{BASE}/{SYMBOL}/raw/{tf}.csv"
+        )
+
+        output_csv = (
+            f"{BASE}/{SYMBOL}/live/HA_{tf}.csv"
+        )
+
+        process_file(
+            input_csv,
+            output_csv
+        )
+
+    print()
+    print("===================================")
+    print("Heikin Ashi Complete")
+    print("===================================")
