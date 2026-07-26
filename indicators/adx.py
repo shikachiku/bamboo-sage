@@ -1,20 +1,13 @@
-import os
 import pandas as pd
+
+from indicator_base import run_indicator
+
 
 # ===================================
 # Parameter
 # ===================================
 
-BASE = "data"
-
-SYMBOL = "WHSELFINVEST_JAPAN225CFD"
-
-TIMEFRAMES = [
-    "1M",
-    "1W",
-    "1D",
-    "4H",
-]
+INDICATOR = "adx"
 
 PERIOD = 14
 
@@ -25,13 +18,15 @@ TREND_ON = 25
 # ADX
 # ===================================
 
-def calculate_adx(data, period=14):
+def calculate(data):
 
-    high = data["High"]
+    result = data.copy()
 
-    low = data["Low"]
+    high = result["High"]
 
-    close = data["Close"]
+    low = result["Low"]
+
+    close = result["Close"]
 
     plus_dm = high.diff()
 
@@ -50,17 +45,17 @@ def calculate_adx(data, period=14):
         axis=1,
     ).max(axis=1)
 
-    atr = tr.rolling(period).mean()
+    atr = tr.rolling(PERIOD).mean()
 
     plus_di = (
         100
-        * plus_dm.rolling(period).mean()
+        * plus_dm.rolling(PERIOD).mean()
         / atr
     )
 
     minus_di = (
         100
-        * minus_dm.rolling(period).mean()
+        * minus_dm.rolling(PERIOD).mean()
         / atr
     )
 
@@ -69,9 +64,7 @@ def calculate_adx(data, period=14):
         / (plus_di + minus_di)
     ) * 100
 
-    adx = dx.rolling(period).mean()
-
-    result = pd.DataFrame(index=data.index)
+    adx = dx.rolling(PERIOD).mean()
 
     result["ADX"] = adx
 
@@ -79,16 +72,15 @@ def calculate_adx(data, period=14):
 
     result["-DI"] = minus_di
 
-    # DI方向
-    result["DI_DIRECTION"] = result.apply(
-        lambda r:
-            "UP"
-            if r["+DI"] > r["-DI"]
-            else "DOWN",
-        axis=1,
+    result["DI_DIRECTION"] = (
+        result["+DI"] > result["-DI"]
+    ).map(
+        {
+            True: "UP",
+            False: "DOWN",
+        }
     )
 
-    # トレンド判定
     result["TREND_ON"] = (
         result["ADX"] >= TREND_ON
     )
@@ -97,53 +89,12 @@ def calculate_adx(data, period=14):
 
 
 # ===================================
-# Process
-# ===================================
-
-def process(tf):
-
-    input_csv = (
-        f"{BASE}/{SYMBOL}/raw/{tf}.csv"
-    )
-
-    output_csv = (
-        f"{BASE}/{SYMBOL}/live/adx/{tf}.csv"
-    )
-
-    data = pd.read_csv(
-        input_csv,
-        index_col=0,
-        parse_dates=True,
-    )
-
-    adx = calculate_adx(
-        data,
-        PERIOD,
-    )
-
-    os.makedirs(
-        os.path.dirname(output_csv),
-        exist_ok=True,
-    )
-
-    adx.to_csv(output_csv)
-
-    print(
-        f"Saved -> {output_csv}"
-    )
-
-
-# ===================================
 # MAIN
 # ===================================
 
 if __name__ == "__main__":
 
-    for tf in TIMEFRAMES:
-
-        process(tf)
-
-    print()
-    print("==============================")
-    print("ADX Complete")
-    print("==============================")
+    run_indicator(
+        INDICATOR,
+        calculate,
+    )
