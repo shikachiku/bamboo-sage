@@ -113,7 +113,7 @@ RAWデータとして保存する。
 
 7. データ構造
 
-データは
+運用データは
 
 Google Drive
 
@@ -121,25 +121,59 @@ Google Drive
 
 data/
 
-以下へ保存する。
+以下で管理する。
 
-銘柄ごとに
+データは
 
-フォルダを作成する。
+銘柄ごとにフォルダを作成する。
 
-例
+標準構造は
 
 data/
+└── 銘柄/
+    ├── raw/
+    │   ├── 4H.csv
+    │   ├── 1D.csv
+    │   ├── 1W.csv
+    │   └── 1M.csv
+    │
+    └── indicator/
+        ├── adx/
+        │   ├── 4H.csv
+        │   ├── 1D.csv
+        │   ├── 1W.csv
+        │   └── 1M.csv
+        │
+        ├── heikin_ashi/
+        ├── highlow/
+        ├── highlow5/
+        ├── trend/
+        ├── strategy/
+        └── ...
 
-JAPAN225CFD/
+RAW データは
 
-NASDAQ100/
+TradingView から取得した
 
-BTC/
+4時間足
 
-GOLD/
+日足
 
-など。
+週足
+
+月足
+
+を保存する。
+
+すべてのインジケータは
+
+indicator/
+
+以下へ保存する。
+
+新規プログラムおよび既存プログラムは
+
+このフォルダ構成へ統一する。
 
 8. インジケータ
 
