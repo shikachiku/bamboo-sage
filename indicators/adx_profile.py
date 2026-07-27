@@ -1,11 +1,22 @@
+from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+
 import os
 import pandas as pd
+
+from settings import DATA_PATH
 
 # ==========================================
 # Parameter
 # ==========================================
 
-BASE = "data"
+BASE = DATA_PATH
 
 SYMBOL = "WHSELFINVEST_JAPAN225CFD"
 
@@ -16,6 +27,7 @@ TIMEFRAMES = [
     "4H",
 ]
 
+
 # ==========================================
 # ZONE
 # ==========================================
@@ -25,10 +37,10 @@ ZONE_LOW_NORMAL = 0.40
 ZONE_NORMAL = 0.60
 ZONE_HIGH_NORMAL = 0.80
 
+
 # ==========================================
 # PROFILE
 # ==========================================
-
 
 def create_profile(adx):
 
@@ -44,6 +56,11 @@ def create_profile(adx):
 
     std = adx["ADX"].std()
 
+
+    # ----------------------------
+    # Position
+    # ----------------------------
+
     if maximum != minimum:
 
         position = (
@@ -56,6 +73,9 @@ def create_profile(adx):
 
         position = 0
 
+
+    # ----------------------------
+    # Zone
     # ----------------------------
 
     if position < ZONE_LOW:
@@ -78,6 +98,9 @@ def create_profile(adx):
 
         zone = "HIGH"
 
+
+    # ----------------------------
+    # Trend Strength
     # ----------------------------
 
     if current < 20:
@@ -104,6 +127,9 @@ def create_profile(adx):
 
         trend_strength = "EXTREME"
 
+
+    # ----------------------------
+    # State
     # ----------------------------
 
     if zone == "LOW":
@@ -126,6 +152,9 @@ def create_profile(adx):
 
         state = "OVERHEATED"
 
+
+    # ----------------------------
+    # Profile
     # ----------------------------
 
     profile = {
@@ -162,23 +191,34 @@ def create_profile(adx):
 
     }
 
+
     return profile
+
 
 
 # ==========================================
 # PROCESS
 # ==========================================
 
-
 def process(tf):
 
+
     input_csv = (
-        f"{BASE}/{SYMBOL}/live/adx/{tf}.csv"
+        BASE
+        / SYMBOL
+        / "indicator"
+        / "adx"
+        / f"{tf}.csv"
     )
 
+
     output_csv = (
-        f"{BASE}/{SYMBOL}/profile/ADX_PROFILE_{tf}.csv"
+        BASE
+        / SYMBOL
+        / "profile"
+        / f"ADX_PROFILE_{tf}.csv"
     )
+
 
     adx = pd.read_csv(
         input_csv,
@@ -186,12 +226,15 @@ def process(tf):
         parse_dates=True,
     )
 
+
     profile = create_profile(adx)
 
-    os.makedirs(
-        os.path.dirname(output_csv),
+
+    output_csv.parent.mkdir(
+        parents=True,
         exist_ok=True,
     )
+
 
     df = pd.DataFrame(
         profile.items(),
@@ -201,12 +244,17 @@ def process(tf):
         ],
     )
 
+
     df.to_csv(
         output_csv,
         index=False,
     )
 
-    print(f"Saved -> {output_csv}")
+
+    print(
+        f"Saved -> {output_csv}"
+    )
+
 
 
 # ==========================================
@@ -215,11 +263,16 @@ def process(tf):
 
 if __name__ == "__main__":
 
+
     for tf in TIMEFRAMES:
 
         process(tf)
 
+
     print()
+
     print("==============================")
+
     print("ADX PROFILE Complete")
+
     print("==============================")

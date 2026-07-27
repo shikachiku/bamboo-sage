@@ -1,6 +1,8 @@
 from pathlib import Path
 from websocket import create_connection
 
+from settings import DATA_PATH
+
 from symbol_loader import load_symbols
 
 from folder_manager import (
@@ -132,9 +134,11 @@ def download_one(symbol, timeframe):
                         buffer
                     )
 
-                    folder = Path(
-                        "data"
-                    ) / symbol["Folder"] / "raw"
+                    folder = (
+                        DATA_PATH
+                        / symbol["Folder"]
+                        / "raw"
+                    )
 
                     folder.mkdir(
                         parents=True,

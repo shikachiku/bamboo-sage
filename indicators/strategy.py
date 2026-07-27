@@ -1,11 +1,12 @@
 import os
 import pandas as pd
+from settings import DATA_PATH
 
 # ======================================
 # Parameter
 # ======================================
 
-BASE = "data"
+BASE = DATA_PATH
 
 SYMBOL = "WHSELFINVEST_JAPAN225CFD"
 

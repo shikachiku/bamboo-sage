@@ -1,20 +1,14 @@
-import os
 import pandas as pd
+
+from indicator_base import run_indicator
+
 
 # ======================================
 # Parameter
 # ======================================
 
-BASE = "data"
+INDICATOR = "highlow"
 
-SYMBOL = "WHSELFINVEST_JAPAN225CFD"
-
-TIMEFRAMES = [
-    "1M",
-    "1W",
-    "1D",
-    "4H",
-]
 
 LENGTHS = [
     5,
@@ -23,17 +17,18 @@ LENGTHS = [
     60,
 ]
 
+
 # ======================================
 # High Low Engine
 # ======================================
 
-def calculate_highlow(data):
+def calculate(data):
 
-    result = pd.DataFrame(index=data.index)
+    result = data.copy()
 
-    result["Close"] = data["Close"]
 
     for length in LENGTHS:
+
 
         # --------------------------
         # High MA
@@ -47,6 +42,7 @@ def calculate_highlow(data):
             .mean()
         )
 
+
         # --------------------------
         # Low MA
         # --------------------------
@@ -59,19 +55,24 @@ def calculate_highlow(data):
             .mean()
         )
 
+
         # --------------------------
         # Distance
         # --------------------------
 
         result[f"DIST_TO_HIGH{length}"] = (
             result[high_name]
-            - result["Close"]
+            -
+            result["Close"]
         )
+
 
         result[f"DIST_TO_LOW{length}"] = (
             result["Close"]
-            - result[low_name]
+            -
+            result[low_name]
         )
+
 
         # --------------------------
         # Break
@@ -83,11 +84,13 @@ def calculate_highlow(data):
             result[high_name]
         )
 
+
         result[f"BREAK_LOW{length}"] = (
             result["Close"]
             <
             result[low_name]
         )
+
 
         # --------------------------
         # Stop
@@ -97,58 +100,25 @@ def calculate_highlow(data):
             result[low_name]
         )
 
+
         result[f"RISK_{length}"] = (
             result["Close"]
             -
             result[f"STOP_PRICE_{length}"]
         )
 
+
     return result
 
-# ======================================
-# Process
-# ======================================
 
-def process(tf):
-
-    input_csv = (
-        f"{BASE}/{SYMBOL}/raw/{tf}.csv"
-    )
-
-    output_csv = (
-        f"{BASE}/{SYMBOL}/live/highlow/{tf}.csv"
-    )
-
-    data = pd.read_csv(
-        input_csv,
-        index_col=0,
-        parse_dates=True,
-    )
-
-    hl = calculate_highlow(data)
-
-    os.makedirs(
-        os.path.dirname(output_csv),
-        exist_ok=True,
-    )
-
-    hl.to_csv(output_csv)
-
-    print(
-        f"Saved -> {output_csv}"
-    )
 
 # ======================================
-# Main
+# MAIN
 # ======================================
 
 if __name__ == "__main__":
 
-    for tf in TIMEFRAMES:
-
-        process(tf)
-
-    print()
-    print("==============================")
-    print("HIGH LOW Complete")
-    print("==============================")
+    run_indicator(
+        INDICATOR,
+        calculate,
+    )

@@ -1,13 +1,22 @@
+from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+
 import os
 import pandas as pd
+
+from settings import DATA_PATH
+from symbol_loader import load_symbols
+
 
 # ======================================
 # Parameter
 # ======================================
-
-BASE = "data"
-
-SYMBOL = "WHSELFINVEST_JAPAN225CFD"
 
 TIMEFRAMES = [
     "1M",
@@ -16,26 +25,44 @@ TIMEFRAMES = [
     "4H",
 ]
 
+
 # ======================================
 # Read Profile
 # ======================================
 
-def load_profile(name, tf):
+def load_profile(
+    symbol,
+    name,
+    tf,
+):
 
     file = (
-        f"{BASE}/{SYMBOL}/profile/"
-        f"{name}_PROFILE_{tf}.csv"
+        DATA_PATH
+        / symbol["Folder"]
+        / "profile"
+        / f"{name}_PROFILE_{tf}.csv"
     )
+
+
+    if not file.exists():
+
+        return {}
+
 
     df = pd.read_csv(file)
 
+
     values = {}
+
 
     for _, row in df.iterrows():
 
         values[row["ITEM"]] = row["VALUE"]
 
+
     return values
+
+
 
 # ======================================
 # Convert Stars
@@ -44,66 +71,152 @@ def load_profile(name, tf):
 def stars_to_score(stars):
 
     table = {
+
         "★★★★★": 5,
         "★★★★☆": 4,
         "★★★☆☆": 3,
         "★★☆☆☆": 2,
         "★☆☆☆☆": 1,
+
     }
 
-    return table.get(stars, 0)
+
+    return table.get(
+        stars,
+        0,
+    )
+
+
 
 # ======================================
 # Build Master
 # ======================================
 
-def build_master(tf):
+def build_master(
+    symbol,
+    tf,
+):
 
-    adx = load_profile("ADX", tf)
+    adx = load_profile(
+        symbol,
+        "ADX",
+        tf,
+    )
 
-    highlow = load_profile("HIGHLOW", tf)
 
-    highlow5 = load_profile("HIGHLOW5", tf)
+    highlow = load_profile(
+        symbol,
+        "HIGHLOW",
+        tf,
+    )
+
+
+    highlow5 = load_profile(
+        symbol,
+        "HIGHLOW5",
+        tf,
+    )
+
+
+    trend = load_profile(
+        symbol,
+        "TREND",
+        tf,
+    )
+
 
     master = {}
 
-    # ---------------------------------
+
+    # =====================================
+    # Basic
+    # =====================================
+
+    master["SYMBOL"] = symbol["Name"]
 
     master["TIMEFRAME"] = tf
 
-    master["ADX_ZONE"] = adx.get("ZONE")
 
-    master["ADX_STATE"] = adx.get("STATE")
 
-    master["ADX_TREND"] = adx.get("TREND_STRENGTH")
+    # =====================================
+    # ADX
+    # =====================================
 
-    # ---------------------------------
+    master["ADX_ZONE"] = adx.get(
+        "ZONE"
+    )
+
+
+    master["ADX_STATE"] = adx.get(
+        "STATE"
+    )
+
+
+    master["ADX_TREND"] = adx.get(
+        "TREND_STRENGTH"
+    )
+
+
+
+    # =====================================
+    # HIGHLOW
+    # =====================================
 
     master["HIGHLOW_SCORE"] = highlow.get(
         "BREAK_SCORE"
     )
 
+
     master["HIGHLOW_ZONE"] = highlow.get(
         "BUY_ZONE"
     )
+
 
     master["HIGHLOW_STATE"] = highlow.get(
         "STATE"
     )
 
-    # ---------------------------------
+
+
+    # =====================================
+    # HIGHLOW5
+    # =====================================
 
     master["HIGHLOW5_SCORE"] = highlow5.get(
         "BREAK_SCORE"
     )
 
+
     master["HIGHLOW5_ZONE"] = highlow5.get(
         "BUY_ZONE"
     )
 
+
     master["HIGHLOW5_STATE"] = highlow5.get(
         "STATE"
     )
+
+
+
+    # =====================================
+    # TREND
+    # =====================================
+
+    master["TREND_STATE"] = trend.get(
+        "STATE"
+    )
+
+
+    master["TREND_DIRECTION"] = trend.get(
+        "TREND"
+    )
+
+
+    master["TREND_ZONE"] = trend.get(
+        "BUY_ZONE"
+    )
+
+
 
     # =====================================
     # AI SCORE
@@ -111,13 +224,20 @@ def build_master(tf):
 
     score = 0
 
-    score += stars_to_score(
-        highlow.get("BUY_ZONE")
-    )
 
     score += stars_to_score(
-        highlow5.get("BUY_ZONE")
+        highlow.get(
+            "BUY_ZONE"
+        )
     )
+
+
+    score += stars_to_score(
+        highlow5.get(
+            "BUY_ZONE"
+        )
+    )
+
 
     score += stars_to_score(
         "★★★★★"
@@ -126,53 +246,94 @@ def build_master(tf):
         "★★★☆☆"
     )
 
+
+    score += stars_to_score(
+        trend.get(
+            "BUY_ZONE"
+        )
+    )
+
+
+
     master["AI_SCORE"] = score
+
+
 
     # =====================================
     # AI ZONE
     # =====================================
 
-    if score >= 14:
+    if score >= 17:
 
         ai = "★★★★★"
 
-    elif score >= 11:
+
+    elif score >= 13:
 
         ai = "★★★★☆"
 
-    elif score >= 8:
+
+    elif score >= 9:
 
         ai = "★★★☆☆"
+
 
     elif score >= 5:
 
         ai = "★★☆☆☆"
 
+
     else:
 
         ai = "★☆☆☆☆"
 
+
+
     master["AI_ZONE"] = ai
 
+
+
     return master
+
+
 
 # ======================================
 # Save
 # ======================================
 
-def process(tf):
+def process(
+    symbol,
+    tf,
+):
 
-    master = build_master(tf)
-
-    out = (
-        f"{BASE}/{SYMBOL}/master"
+    master = build_master(
+        symbol,
+        tf,
     )
 
-    os.makedirs(out, exist_ok=True)
+
+    output_dir = (
+        DATA_PATH
+        /
+        symbol["Folder"]
+        /
+        "master"
+    )
+
+
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
 
     output = (
-        f"{out}/{tf}.csv"
+        output_dir
+        /
+        f"{tf}.csv"
     )
+
+
 
     df = pd.DataFrame(
         master.items(),
@@ -182,26 +343,61 @@ def process(tf):
         ],
     )
 
+
     df.to_csv(
         output,
         index=False,
     )
 
+
     print(
-        f"Saved -> {output}"
+        f"Saved : {output}"
     )
+
+
 
 # ======================================
 # MAIN
 # ======================================
 
-if __name__ == "__main__":
+def main():
 
-    for tf in TIMEFRAMES:
+    print("=" * 40)
+    print("MASTER START")
+    print("=" * 40)
 
-        process(tf)
+
+
+    symbols = load_symbols()
+
+
+
+    for symbol in symbols:
+
+
+        print()
+        print("=" * 60)
+        print(symbol["Name"])
+        print("=" * 60)
+
+
+
+        for tf in TIMEFRAMES:
+
+            process(
+                symbol,
+                tf,
+            )
+
+
 
     print()
-    print("==============================")
-    print("MASTER Complete")
-    print("==============================")
+    print("=" * 40)
+    print("MASTER COMPLETE")
+    print("=" * 40)
+
+
+
+if __name__ == "__main__":
+
+    main()

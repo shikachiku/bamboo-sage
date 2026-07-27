@@ -1,19 +1,11 @@
 from pathlib import Path
 import sys
 
-# ======================================
-# Project Root
-# ======================================
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-
-# ======================================
-# Import
-# ======================================
 
 import pandas as pd
 
@@ -37,46 +29,74 @@ INDICATOR = "trend"
 
 
 # ======================================
-# Trend Judge
+# Trend Profile
 # ======================================
 
-def judge_trend(colors):
+def create_profile(data):
 
-    trends = []
+    latest = data.iloc[-1]
 
-    for i, color in enumerate(colors):
-
-        if i == 0:
-
-            trends.append("START")
-
-            continue
+    status = latest["TREND_STATUS"]
 
 
-        previous = colors[i - 1]
+    profile = {}
 
 
-        if previous == "RED" and color == "BLUE":
-
-            trends.append("BLUE_CHANGE")
+    profile["STATE"] = status
 
 
-        elif previous == "BLUE" and color == "RED":
+    # --------------------------
+    # Trend Direction
+    # --------------------------
 
-            trends.append("RED_CHANGE")
+    if status in [
+        "BLUE_CHANGE",
+        "BLUE_CONTINUE",
+    ]:
 
-
-        elif color == "BLUE":
-
-            trends.append("BLUE_CONTINUE")
-
-
-        else:
-
-            trends.append("RED_CONTINUE")
+        profile["TREND"] = "UP"
 
 
-    return trends
+    elif status in [
+        "RED_CHANGE",
+        "RED_CONTINUE",
+    ]:
+
+        profile["TREND"] = "DOWN"
+
+
+    else:
+
+        profile["TREND"] = "NONE"
+
+
+
+    # --------------------------
+    # BUY ZONE
+    # --------------------------
+
+    if status == "BLUE_CHANGE":
+
+        profile["BUY_ZONE"] = "★★★★★"
+
+
+    elif status == "BLUE_CONTINUE":
+
+        profile["BUY_ZONE"] = "★★★★☆"
+
+
+    elif status == "RED_CHANGE":
+
+        profile["BUY_ZONE"] = "★★☆☆☆"
+
+
+    else:
+
+        profile["BUY_ZONE"] = "★☆☆☆☆"
+
+
+
+    return profile
 
 
 
@@ -84,24 +104,15 @@ def judge_trend(colors):
 # Process
 # ======================================
 
-def process(symbol, timeframe):
+def process(symbol, tf):
 
 
     input_file = (
         DATA_PATH
         / symbol["Folder"]
         / "indicator"
-        / "heikin_ashi"
-        / f"{timeframe}.csv"
-    )
-
-
-    output_file = (
-        DATA_PATH
-        / symbol["Folder"]
-        / "indicator"
-        / INDICATOR
-        / f"{timeframe}.csv"
+        / "trend"
+        / f"{tf}.csv"
     )
 
 
@@ -122,29 +133,43 @@ def process(symbol, timeframe):
     )
 
 
-    result = pd.DataFrame(index=data.index)
-
-
-    result["HA_COLOR"] = (
-        data["HA_COLOR"]
+    profile = create_profile(
+        data
     )
 
 
-    result["TREND_STATUS"] = (
-        judge_trend(
-            data["HA_COLOR"].tolist()
-        )
+    output_dir = (
+        DATA_PATH
+        / symbol["Folder"]
+        / "profile"
     )
 
 
-    output_file.parent.mkdir(
+    output_dir.mkdir(
         parents=True,
         exist_ok=True,
     )
 
 
-    result.to_csv(
-        output_file
+    output_file = (
+        output_dir
+        /
+        f"TREND_PROFILE_{tf}.csv"
+    )
+
+
+    df = pd.DataFrame(
+        profile.items(),
+        columns=[
+            "ITEM",
+            "VALUE",
+        ],
+    )
+
+
+    df.to_csv(
+        output_file,
+        index=False,
     )
 
 
@@ -161,7 +186,7 @@ def process(symbol, timeframe):
 def main():
 
     print("=" * 40)
-    print("TREND START")
+    print("TREND PROFILE START")
     print("=" * 40)
 
 
@@ -169,6 +194,7 @@ def main():
 
 
     for symbol in symbols:
+
 
         print()
         print("=" * 60)
@@ -184,9 +210,10 @@ def main():
             )
 
 
+
     print()
     print("=" * 40)
-    print("TREND COMPLETE")
+    print("TREND PROFILE COMPLETE")
     print("=" * 40)
 
 

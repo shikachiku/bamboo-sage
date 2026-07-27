@@ -1,11 +1,23 @@
+from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+
 import os
 import pandas as pd
+
+from settings import DATA_PATH
+
 
 # ======================================
 # Parameter
 # ======================================
 
-BASE = "data"
+BASE = DATA_PATH
 
 SYMBOL = "WHSELFINVEST_JAPAN225CFD"
 
@@ -16,6 +28,7 @@ TIMEFRAMES = [
     "4H",
 ]
 
+
 # ======================================
 # Profile
 # ======================================
@@ -24,12 +37,15 @@ def create_profile(data):
 
     profile = {}
 
+
     profile["CURRENT_CLOSE"] = round(
         data["Close"].iloc[-1],
         3,
     )
 
+
     score = 0
+
 
     # ----------------------------
     # Break Score
@@ -47,7 +63,9 @@ def create_profile(data):
     if data["BREAK_HIGH60"].iloc[-1]:
         score += 4
 
+
     profile["BREAK_SCORE"] = score
+
 
     # ----------------------------
     # BUY ZONE
@@ -73,7 +91,9 @@ def create_profile(data):
 
         stars = "★☆☆☆☆"
 
+
     profile["BUY_ZONE"] = stars
+
 
     # ----------------------------
     # STATE
@@ -99,7 +119,9 @@ def create_profile(data):
 
         state = "WAIT"
 
+
     profile["STATE"] = state
+
 
     # ----------------------------
     # Last Values
@@ -112,40 +134,49 @@ def create_profile(data):
             3,
         )
 
+
         profile[f"Low{length}MA"] = round(
             data[f"Low{length}MA"].iloc[-1],
             3,
         )
+
 
         profile[f"DIST_TO_HIGH{length}"] = round(
             data[f"DIST_TO_HIGH{length}"].iloc[-1],
             3,
         )
 
+
         profile[f"DIST_TO_LOW{length}"] = round(
             data[f"DIST_TO_LOW{length}"].iloc[-1],
             3,
         )
 
+
         profile[f"BREAK_HIGH{length}"] = (
             data[f"BREAK_HIGH{length}"].iloc[-1]
         )
 
+
         profile[f"BREAK_LOW{length}"] = (
             data[f"BREAK_LOW{length}"].iloc[-1]
         )
+
 
         profile[f"STOP_PRICE_{length}"] = round(
             data[f"STOP_PRICE_{length}"].iloc[-1],
             3,
         )
 
+
         profile[f"RISK_{length}"] = round(
             data[f"RISK_{length}"].iloc[-1],
             3,
         )
 
+
     return profile
+
 
 
 # ======================================
@@ -154,13 +185,23 @@ def create_profile(data):
 
 def process(tf):
 
+
     input_csv = (
-        f"{BASE}/{SYMBOL}/live/highlow/{tf}.csv"
+        BASE
+        / SYMBOL
+        / "indicator"
+        / "highlow"
+        / f"{tf}.csv"
     )
 
+
     output_csv = (
-        f"{BASE}/{SYMBOL}/profile/HIGHLOW_PROFILE_{tf}.csv"
+        BASE
+        / SYMBOL
+        / "profile"
+        / f"HIGHLOW_PROFILE_{tf}.csv"
     )
+
 
     data = pd.read_csv(
         input_csv,
@@ -168,12 +209,15 @@ def process(tf):
         parse_dates=True,
     )
 
+
     profile = create_profile(data)
 
-    os.makedirs(
-        os.path.dirname(output_csv),
+
+    output_csv.parent.mkdir(
+        parents=True,
         exist_ok=True,
     )
+
 
     df = pd.DataFrame(
         profile.items(),
@@ -183,12 +227,17 @@ def process(tf):
         ],
     )
 
+
     df.to_csv(
         output_csv,
         index=False,
     )
 
-    print(f"Saved -> {output_csv}")
+
+    print(
+        f"Saved -> {output_csv}"
+    )
+
 
 
 # ======================================
@@ -197,11 +246,16 @@ def process(tf):
 
 if __name__ == "__main__":
 
+
     for tf in TIMEFRAMES:
 
         process(tf)
 
+
     print()
+
     print("==============================")
+
     print("HIGHLOW PROFILE Complete")
+
     print("==============================")
