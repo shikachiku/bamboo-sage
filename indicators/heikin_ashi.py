@@ -1,110 +1,114 @@
-import os
 import pandas as pd
+
+from indicator_base import run_indicator
+
 
 # ===================================
 # Parameter
 # ===================================
 
-BASE = "data"
-
-SYMBOL = "WHSELFINVEST_JAPAN225CFD"
-
-TIMEFRAMES = [
-    "1M",
-    "1W",
-    "1D",
-    "4H",
-]
+INDICATOR = "heikin_ashi"
 
 
 # ===================================
 # Heikin Ashi
 # ===================================
 
-def calculate_heikin_ashi(data):
+def calculate(data):
 
-    ha = pd.DataFrame(index=data.index)
+    result = data.copy()
 
-    # 平均足終値
-    ha["HA_Close"] = (
-        data["Open"]
-        + data["High"]
-        + data["Low"]
-        + data["Close"]
+
+    # ===================================
+    # HA Close
+    # ===================================
+
+    result["HA_Close"] = (
+        result["Open"]
+        + result["High"]
+        + result["Low"]
+        + result["Close"]
     ) / 4
 
-    # 平均足始値
-    ha["HA_Open"] = 0.0
 
-    # 最初の1本
-    ha.iloc[0, ha.columns.get_loc("HA_Open")] = (
-        data["Open"].iloc[0]
-        + data["Close"].iloc[0]
+    # ===================================
+    # HA Open
+    # ===================================
+
+    result["HA_Open"] = 0.0
+
+
+    result.iloc[
+        0,
+        result.columns.get_loc("HA_Open")
+    ] = (
+        result["Open"].iloc[0]
+        + result["Close"].iloc[0]
     ) / 2
 
-    # 2本目以降
-    for i in range(1, len(data)):
 
-        ha.iloc[i, ha.columns.get_loc("HA_Open")] = (
-            ha["HA_Open"].iloc[i - 1]
-            + ha["HA_Close"].iloc[i - 1]
+    for i in range(1, len(result)):
+
+        result.iloc[
+            i,
+            result.columns.get_loc("HA_Open")
+        ] = (
+            result["HA_Open"].iloc[i - 1]
+            + result["HA_Close"].iloc[i - 1]
         ) / 2
 
-    # 高値
-    ha["HA_High"] = pd.concat(
-        [
-            data["High"],
-            ha["HA_Open"],
-            ha["HA_Close"],
-        ],
-        axis=1,
-    ).max(axis=1)
-
-    # 安値
-    ha["HA_Low"] = pd.concat(
-        [
-            data["Low"],
-            ha["HA_Open"],
-            ha["HA_Close"],
-        ],
-        axis=1,
-    ).min(axis=1)
-
-    return ha
 
 
-# ===================================
-# Process
-# ===================================
+    # ===================================
+    # HA High
+    # ===================================
 
-def process(tf):
-
-    input_csv = (
-        f"{BASE}/{SYMBOL}/raw/{tf}.csv"
+    result["HA_High"] = (
+        result[
+            [
+                "High",
+                "HA_Open",
+                "HA_Close",
+            ]
+        ]
+        .max(axis=1)
     )
 
-    output_csv = (
-        f"{BASE}/{SYMBOL}/live/heikin_ashi/{tf}.csv"
+
+    # ===================================
+    # HA Low
+    # ===================================
+
+    result["HA_Low"] = (
+        result[
+            [
+                "Low",
+                "HA_Open",
+                "HA_Close",
+            ]
+        ]
+        .min(axis=1)
     )
 
-    data = pd.read_csv(
-        input_csv,
-        index_col=0,
-        parse_dates=True,
+
+    # ===================================
+    # HA Color
+    # ===================================
+
+    result["HA_COLOR"] = (
+        result["HA_Close"]
+        >
+        result["HA_Open"]
+    ).map(
+        {
+            True: "BLUE",
+            False: "RED",
+        }
     )
 
-    ha = calculate_heikin_ashi(data)
 
-    os.makedirs(
-        os.path.dirname(output_csv),
-        exist_ok=True,
-    )
+    return result
 
-    ha.to_csv(output_csv)
-
-    print(
-        f"Saved -> {output_csv}"
-    )
 
 
 # ===================================
@@ -113,11 +117,7 @@ def process(tf):
 
 if __name__ == "__main__":
 
-    for tf in TIMEFRAMES:
-
-        process(tf)
-
-    print()
-    print("==============================")
-    print("Heikin Ashi Complete")
-    print("==============================")
+    run_indicator(
+        INDICATOR,
+        calculate,
+    )
