@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 if str(PROJECT_ROOT) not in sys.path:
@@ -11,6 +12,9 @@ import os
 import pandas as pd
 
 from settings import DATA_PATH
+from settings import DATA_PATH
+from symbol_loader import load_symbols
+
 
 
 # ======================================
@@ -19,7 +23,6 @@ from settings import DATA_PATH
 
 BASE = DATA_PATH
 
-SYMBOL = "WHSELFINVEST_JAPAN225CFD"
 
 TIMEFRAMES = [
     "1M",
@@ -183,25 +186,33 @@ def create_profile(data):
 # Process
 # ======================================
 
-def process(tf):
-
+def process(
+    symbol,
+    tf,
+):
 
     input_csv = (
         BASE
-        / SYMBOL
+        / symbol["Folder"]
         / "indicator"
         / "highlow"
         / f"{tf}.csv"
     )
 
+    if not input_csv.exists():
+
+        print(
+            f"HIGHLOW Not Found : {input_csv}"
+        )
+
+        return
 
     output_csv = (
         BASE
-        / SYMBOL
+        / symbol["Folder"]
         / "profile"
         / f"HIGHLOW_PROFILE_{tf}.csv"
     )
-
 
     data = pd.read_csv(
         input_csv,
@@ -209,15 +220,12 @@ def process(tf):
         parse_dates=True,
     )
 
-
     profile = create_profile(data)
-
 
     output_csv.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
-
 
     df = pd.DataFrame(
         profile.items(),
@@ -227,12 +235,10 @@ def process(tf):
         ],
     )
 
-
     df.to_csv(
         output_csv,
         index=False,
     )
-
 
     print(
         f"Saved -> {output_csv}"
@@ -246,11 +252,24 @@ def process(tf):
 
 if __name__ == "__main__":
 
+    symbols = load_symbols()
 
-    for tf in TIMEFRAMES:
+    for symbol in symbols:
 
-        process(tf)
+        print()
 
+        print("=" * 60)
+
+        print(symbol["Name"])
+
+        print("=" * 60)
+
+        for tf in TIMEFRAMES:
+
+            process(
+                symbol,
+                tf,
+            )
 
     print()
 

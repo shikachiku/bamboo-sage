@@ -11,6 +11,7 @@ import os
 import pandas as pd
 
 from settings import DATA_PATH
+from symbol_loader import load_symbols
 
 
 # ======================================
@@ -19,7 +20,6 @@ from settings import DATA_PATH
 
 BASE = DATA_PATH
 
-SYMBOL = "WHSELFINVEST_JAPAN225CFD"
 
 TIMEFRAMES = [
     "1M",
@@ -167,21 +167,33 @@ def create_profile(data):
 # Process
 # ======================================
 
-def process(tf):
-
-
-    # 修正済み
-    # indicator/highlow5 を読む
+def process(
+    symbol,
+    tf,
+):
 
     input_csv = (
-        f"{BASE}/{SYMBOL}/indicator/highlow5/{tf}.csv"
+        BASE
+        / symbol["Folder"]
+        / "indicator"
+        / "highlow5"
+        / f"{tf}.csv"
     )
 
+    if not input_csv.exists():
+
+        print(
+            f"HIGHLOW5 Not Found : {input_csv}"
+        )
+
+        return
 
     output_csv = (
-        f"{BASE}/{SYMBOL}/profile/HIGHLOW5_PROFILE_{tf}.csv"
+        BASE
+        / symbol["Folder"]
+        / "profile"
+        / f"HIGHLOW5_PROFILE_{tf}.csv"
     )
-
 
     data = pd.read_csv(
         input_csv,
@@ -189,15 +201,12 @@ def process(tf):
         parse_dates=True,
     )
 
-
     profile = create_profile(data)
 
-
-    os.makedirs(
-        os.path.dirname(output_csv),
+    output_csv.parent.mkdir(
+        parents=True,
         exist_ok=True,
     )
-
 
     df = pd.DataFrame(
         profile.items(),
@@ -207,12 +216,10 @@ def process(tf):
         ],
     )
 
-
     df.to_csv(
         output_csv,
         index=False,
     )
-
 
     print(
         f"Saved -> {output_csv}"
@@ -226,11 +233,24 @@ def process(tf):
 
 if __name__ == "__main__":
 
+    symbols = load_symbols()
 
-    for tf in TIMEFRAMES:
+    for symbol in symbols:
 
-        process(tf)
+        print()
 
+        print("=" * 60)
+
+        print(symbol["Name"])
+
+        print("=" * 60)
+
+        for tf in TIMEFRAMES:
+
+            process(
+                symbol,
+                tf,
+            )
 
     print()
 

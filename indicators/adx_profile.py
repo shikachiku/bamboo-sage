@@ -17,7 +17,6 @@ from symbol_loader import load_symbols
 # Parameter
 # ==========================================
 
-SYMBOL = "WHSELFINVEST_JAPAN225CFD"
 
 TIMEFRAMES = [
     "1M",

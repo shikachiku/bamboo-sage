@@ -1,6 +1,21 @@
+from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(
+        0,
+        str(PROJECT_ROOT)
+    )
+
+
 import os
 import pandas as pd
+
 from settings import DATA_PATH
+from symbol_loader import load_symbols
+
 
 # ======================================
 # Parameter
@@ -8,7 +23,6 @@ from settings import DATA_PATH
 
 BASE = DATA_PATH
 
-SYMBOL = "WHSELFINVEST_JAPAN225CFD"
 
 TIMEFRAMES = [
     "1M",
@@ -107,11 +121,25 @@ def decide(master):
 # Process
 # ======================================
 
-def process(tf):
+def process(
+    symbol,
+    tf,
+):
 
     master_file = (
-        f"{BASE}/{SYMBOL}/master/{tf}.csv"
+        BASE
+        / symbol["Folder"]
+        / "master"
+        / f"{tf}.csv"
     )
+
+    if not master_file.exists():
+
+        print(
+            f"MASTER Not Found : {master_file}"
+        )
+
+        return
 
     df = pd.read_csv(master_file)
 
@@ -124,13 +152,19 @@ def process(tf):
     result = decide(master)
 
     out = (
-        f"{BASE}/{SYMBOL}/strategy"
+        BASE
+        / symbol["Folder"]
+        / "strategy"
     )
 
-    os.makedirs(out, exist_ok=True)
+    out.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     output = (
-        f"{out}/{tf}.csv"
+        out
+        / f"{tf}.csv"
     )
 
     strategy = {
@@ -160,7 +194,9 @@ def process(tf):
 
     )
 
-    print(f"Saved -> {output}")
+    print(
+        f"Saved -> {output}"
+    )
 
 # ======================================
 # Main
@@ -168,9 +204,21 @@ def process(tf):
 
 if __name__ == "__main__":
 
-    for tf in TIMEFRAMES:
+    symbols = load_symbols()
 
-        process(tf)
+    for symbol in symbols:
+
+        print()
+        print("=" * 60)
+        print(symbol["Name"])
+        print("=" * 60)
+
+        for tf in TIMEFRAMES:
+
+            process(
+                symbol,
+                tf,
+            )
 
     print()
     print("==============================")
