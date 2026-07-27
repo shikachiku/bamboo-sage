@@ -21,10 +21,10 @@ from indicator_base import run_indicator
 
 INDICATOR = "adx"
 
-# TradingView ADX Length
+# TradingView Pine v4
 PERIOD = 10
 
-# TradingView Threshold
+# Threshold
 TREND_ON = 5
 
 
@@ -35,80 +35,93 @@ TREND_ON = 5
 
 def rma(series, length):
 
-    return (
-        series
-        .ewm(
-            alpha=1 / length,
-            adjust=False
-        )
-        .mean()
+    result = pd.Series(
+        index=series.index,
+        dtype=float
     )
+
+    if len(series) == 0:
+        return result
+
+
+    # Pine v4 style:
+    # x := nz(x[1]) - nz(x[1])/length + value
+
+    result.iloc[0] = series.iloc[0]
+
+
+    for i in range(
+        1,
+        len(series)
+    ):
+
+        result.iloc[i] = (
+            result.iloc[i - 1]
+            -
+            (
+                result.iloc[i - 1]
+                /
+                length
+            )
+            +
+            series.iloc[i]
+        )
+
+
+    return result
 
 
 
 # ===================================
 # ADX Calculation
+# TradingView Pine v4 style
 # ===================================
 
 def calculate(data):
 
     result = data.copy()
 
-
     high = result["High"]
-
     low = result["Low"]
-
     close = result["Close"]
-
 
 
     # =================================
     # True Range
     # =================================
 
-    tr1 = high - low
-
-    tr2 = (
-        high
-        -
-        close.shift(1)
-    ).abs()
-
-    tr3 = (
-        low
-        -
-        close.shift(1)
-    ).abs()
+    tr = pd.Series(
+        0.0,
+        index=data.index
+    )
 
 
-    tr = pd.concat(
-        [
-            tr1,
-            tr2,
-            tr3,
-        ],
-        axis=1,
-    ).max(axis=1)
+    for i in range(len(data)):
+
+        if i == 0:
+            tr.iloc[i] = 0.0
+
+        else:
+
+            tr.iloc[i] = max(
+                high.iloc[i] - low.iloc[i],
+                abs(
+                    high.iloc[i]
+                    -
+                    close.iloc[i - 1]
+                ),
+                abs(
+                    low.iloc[i]
+                    -
+                    close.iloc[i - 1]
+                )
+            )
 
 
 
     # =================================
     # Directional Movement
     # =================================
-
-    up_move = (
-        high
-        -
-        high.shift(1)
-    )
-
-    down_move = (
-        low.shift(1)
-        -
-        low
-    )
-
 
     plus_dm = pd.Series(
         0.0,
@@ -121,74 +134,158 @@ def calculate(data):
     )
 
 
-    plus_dm[
-        (
+    for i in range(1, len(data)):
+
+        up_move = (
+            high.iloc[i]
+            -
+            high.iloc[i - 1]
+        )
+
+        down_move = (
+            low.iloc[i - 1]
+            -
+            low.iloc[i]
+        )
+
+
+        if (
             up_move > down_move
-        )
-        &
-        (
+            and
             up_move > 0
-        )
-    ] = up_move
+        ):
+
+            plus_dm.iloc[i] = up_move
 
 
-    minus_dm[
-        (
+        elif (
             down_move > up_move
-        )
-        &
-        (
+            and
             down_move > 0
-        )
-    ] = down_move
+        ):
+
+            minus_dm.iloc[i] = down_move
 
 
 
     # =================================
-    # Wilder smoothing
+    # Pine v4 Wilder smoothing
+    # Start from 0.0
     # =================================
 
-    atr = rma(
-        tr,
-        PERIOD
+    smooth_tr = pd.Series(
+        0.0,
+        index=data.index
+    )
+
+    smooth_plus = pd.Series(
+        0.0,
+        index=data.index
+    )
+
+    smooth_minus = pd.Series(
+        0.0,
+        index=data.index
     )
 
 
-    plus_di = (
-        100
-        *
-        rma(
-            plus_dm,
-            PERIOD
+    for i in range(len(data)):
+
+        smooth_tr.iloc[i] = (
+            (
+                smooth_tr.iloc[i - 1]
+                if i > 0
+                else 0.0
+            )
+            -
+            (
+                (
+                    smooth_tr.iloc[i - 1]
+                    if i > 0
+                    else 0.0
+                )
+                /
+                PERIOD
+            )
+            +
+            tr.iloc[i]
         )
+
+
+        smooth_plus.iloc[i] = (
+            (
+                smooth_plus.iloc[i - 1]
+                if i > 0
+                else 0.0
+            )
+            -
+            (
+                (
+                    smooth_plus.iloc[i - 1]
+                    if i > 0
+                    else 0.0
+                )
+                /
+                PERIOD
+            )
+            +
+            plus_dm.iloc[i]
+        )
+
+
+        smooth_minus.iloc[i] = (
+            (
+                smooth_minus.iloc[i - 1]
+                if i > 0
+                else 0.0
+            )
+            -
+            (
+                (
+                    smooth_minus.iloc[i - 1]
+                    if i > 0
+                    else 0.0
+                )
+                /
+                PERIOD
+            )
+            +
+            minus_dm.iloc[i]
+        )
+
+
+
+    # =================================
+    # DI
+    # =================================
+
+    plus_di = (
+        smooth_plus
         /
-        atr
+        smooth_tr
+        *
+        100
     )
 
 
     minus_di = (
-        100
-        *
-        rma(
-            minus_dm,
-            PERIOD
-        )
+        smooth_minus
         /
-        atr
+        smooth_tr
+        *
+        100
     )
+
+
+    plus_di = plus_di.fillna(0)
+
+    minus_di = minus_di.fillna(0)
 
 
 
     # =================================
     # DX
     # =================================
-
-    di_sum = (
-        plus_di
-        +
-        minus_di
-    )
-
 
     dx = (
         (
@@ -198,50 +295,36 @@ def calculate(data):
         )
         .abs()
         /
-        di_sum.replace(
-            0,
-            pd.NA
+        (
+            plus_di
+            +
+            minus_di
         )
     ) * 100
 
+
+    dx = dx.replace(
+        [float("inf")],
+        0
+    )
 
     dx = dx.fillna(0)
 
 
 
     # =================================
-    # ADX (Wilder / TradingView style)
+    # ADX
+    # Pine v4:
+    # ADX = SMA(DX, PERIOD)
     # =================================
 
-    adx = pd.Series(
-        index=dx.index,
-        dtype=float
-    )
-
-
-    if len(dx) >= PERIOD:
-
-        adx.iloc[PERIOD - 1] = (
-            dx.iloc[:PERIOD]
-            .mean()
+    adx = (
+        dx
+        .rolling(
+            PERIOD
         )
-
-
-        for i in range(
-            PERIOD,
-            len(dx)
-        ):
-
-            adx.iloc[i] = (
-                (
-                    adx.iloc[i - 1]
-                    *
-                    (PERIOD - 1)
-                )
-                +
-                dx.iloc[i]
-            ) / PERIOD
-
+        .mean()
+    )
 
 
     result["ADX"] = adx

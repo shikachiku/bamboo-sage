@@ -11,7 +11,7 @@ import os
 import pandas as pd
 
 from settings import DATA_PATH
-
+from symbol_loader import load_symbols
 
 # ==========================================
 # Parameter
@@ -290,13 +290,16 @@ def create_profile(adx, tf):
 # PROCESS
 # ==========================================
 
-def process(tf):
+def process(
+    symbol,
+    tf,
+):
 
 
     input_csv = (
         DATA_PATH
         /
-        SYMBOL
+        symbol["Folder"]
         /
         "indicator"
         /
@@ -306,15 +309,26 @@ def process(tf):
     )
 
 
+    if not input_csv.exists():
+
+        print(
+            f"ADX Not Found : {input_csv}"
+        )
+
+        return
+
+
+
     output_csv = (
         DATA_PATH
         /
-        SYMBOL
+        symbol["Folder"]
         /
         "profile"
         /
         f"ADX_PROFILE_{tf}.csv"
     )
+
 
 
     adx = pd.read_csv(
@@ -384,9 +398,29 @@ def process(tf):
 if __name__ == "__main__":
 
 
-    for tf in TIMEFRAMES:
+    symbols = load_symbols()
 
-        process(tf)
+
+
+    for symbol in symbols:
+
+
+        print()
+
+        print("=" * 60)
+
+        print(symbol["Name"])
+
+        print("=" * 60)
+
+
+
+        for tf in TIMEFRAMES:
+
+            process(
+                symbol,
+                tf,
+            )
 
 
 

@@ -125,6 +125,20 @@ def build_master(
     )
 
 
+    macd = load_profile(
+        symbol,
+        "MACD",
+        tf,
+    )
+
+
+    stochastic = load_profile(
+        symbol,
+        "STOCHASTIC",
+        tf,
+    )
+
+
     master = {}
 
 
@@ -219,6 +233,56 @@ def build_master(
 
 
     # =====================================
+    # MACD
+    # =====================================
+
+    master["MACD_STATE"] = macd.get(
+        "STATE"
+    )
+
+
+    master["MACD_CROSS"] = macd.get(
+        "CROSS"
+    )
+
+
+    master["MACD_HIST_STATE"] = macd.get(
+        "HIST_STATE"
+    )
+
+
+    master["MACD_ZONE"] = macd.get(
+        "ZONE"
+    )
+
+
+
+    # =====================================
+    # STOCHASTIC
+    # =====================================
+
+    master["STOCH_STATE"] = stochastic.get(
+        "STATE"
+    )
+
+
+    master["STOCH_CROSS"] = stochastic.get(
+        "CROSS"
+    )
+
+
+    master["STOCH_ZONE"] = stochastic.get(
+        "ZONE"
+    )
+
+
+    master["STOCH_WAVE"] = stochastic.get(
+        "WAVE"
+    )
+
+
+
+    # =====================================
     # AI SCORE
     # =====================================
 
@@ -252,7 +316,6 @@ def build_master(
             "BUY_ZONE"
         )
     )
-
 
 
     master["AI_SCORE"] = score
