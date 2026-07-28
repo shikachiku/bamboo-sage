@@ -137,7 +137,11 @@ def build_master(
         "STOCHASTIC",
         tf,
     )
-
+    fibonacci = load_profile(
+        symbol,
+        "FIBONACCI",
+        tf,
+    )
 
     master = {}
 
@@ -278,6 +282,54 @@ def build_master(
 
     master["STOCH_WAVE"] = stochastic.get(
         "WAVE"
+    )
+
+    # =====================================
+    # FIBONACCI
+    # =====================================
+
+    master["FIB_TREND"] = fibonacci.get(
+        "TREND"
+    )
+
+
+    master["FIB_START_PRICE"] = fibonacci.get(
+        "START_PRICE"
+    )
+
+
+    master["FIB_END_PRICE"] = fibonacci.get(
+        "END_PRICE"
+    )
+
+
+    master["FIB_HALF_PRICE"] = fibonacci.get(
+        "HALF_PRICE"
+    )
+
+
+    master["FIB_CURRENT_CLOSE"] = fibonacci.get(
+        "CURRENT_CLOSE"
+    )
+
+
+    master["FIB_DISTANCE"] = fibonacci.get(
+        "DIST_TO_HALF"
+    )
+
+
+    master["FIB_DISTANCE_RATE"] = fibonacci.get(
+        "DIST_RATE"
+    )
+
+
+    master["FIB_ZONE"] = fibonacci.get(
+        "ZONE"
+    )
+
+
+    master["FIB_STATE"] = fibonacci.get(
+        "STATE"
     )
 
 
