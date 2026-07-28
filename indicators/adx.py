@@ -12,7 +12,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import pandas as pd
 
-from indicator_base import run_indicator
 
 
 # ===================================
@@ -77,9 +76,11 @@ def rma(series, length):
 # TradingView Pine v4 style
 # ===================================
 
-def calculate(data):
+def calculate(df):
 
-    result = data.copy()
+    result = df.copy()
+
+    
 
     high = result["High"]
     low = result["Low"]
@@ -92,11 +93,11 @@ def calculate(data):
 
     tr = pd.Series(
         0.0,
-        index=data.index
+        index=df.index
     )
 
 
-    for i in range(len(data)):
+    for i in range(len(df)):
 
         if i == 0:
             tr.iloc[i] = 0.0
@@ -125,16 +126,16 @@ def calculate(data):
 
     plus_dm = pd.Series(
         0.0,
-        index=data.index
+       index=df.index
     )
 
     minus_dm = pd.Series(
         0.0,
-        index=data.index
+        index=df.index
     )
 
 
-    for i in range(1, len(data)):
+    for i in range(1, len(df)):
 
         up_move = (
             high.iloc[i]
@@ -175,21 +176,21 @@ def calculate(data):
 
     smooth_tr = pd.Series(
         0.0,
-        index=data.index
+        index=df.index
     )
 
     smooth_plus = pd.Series(
         0.0,
-        index=data.index
+        index=df.index
     )
 
     smooth_minus = pd.Series(
         0.0,
-        index=data.index
+        index=df.index
     )
 
 
-    for i in range(len(data)):
+    for i in range(len(df)):
 
         smooth_tr.iloc[i] = (
             (
@@ -365,15 +366,3 @@ def calculate(data):
 
     return result
 
-
-
-# ===================================
-# MAIN
-# ===================================
-
-if __name__ == "__main__":
-
-    run_indicator(
-        INDICATOR,
-        calculate,
-    )

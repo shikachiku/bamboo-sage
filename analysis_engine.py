@@ -12,7 +12,7 @@ from settings import DATA_PATH
 from symbol_loader import load_symbols
 
 from indicators.heikin_ashi import calculate as heikin_ashi
-
+from indicators.adx import calculate as adx
 
 # ======================================
 # Parameter
@@ -101,6 +101,12 @@ def process(
     # -----------------------------
 
     df = heikin_ashi(df)
+    
+    
+    # -----------------------------
+    # ADX
+    # -----------------------------
+    df = adx(df)
 
     save_analysis(
         symbol,
