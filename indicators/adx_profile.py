@@ -124,34 +124,22 @@ def get_adx_state(tf, value):
 
 def get_zone(tf, value):
 
-    if tf == "1M":
+    # インデックス用（暫定）
 
-        if value < 20:
-            return "LOW"
+    LOW = 25
+    HIGH = 40
 
-        elif value < 35:
-            return "NORMAL"
+    if value <= LOW:
 
-        elif value < 50:
-            return "HIGH_NORMAL"
+        return "LOW"
 
-        else:
-            return "HIGH"
+    elif value < HIGH:
 
+        return "NORMAL"
 
     else:
 
-        if value < 20:
-            return "LOW"
-
-        elif value < 35:
-            return "NORMAL"
-
-        elif value < 50:
-            return "HIGH_NORMAL"
-
-        else:
-            return "HIGH"
+        return "HIGH"
 
 
 
@@ -160,7 +148,6 @@ def get_zone(tf, value):
 # ==========================================
 
 def create_profile(adx, tf):
-
 
     # ======================================
     # Monthly initial data exclusion
@@ -175,8 +162,14 @@ def create_profile(adx, tf):
         calc = adx
 
 
+    # ======================================
+    # Current / Previous
+    # ======================================
 
     current = calc["ADX"].iloc[-1]
+
+    previous = calc["ADX"].iloc[-2]
+
 
     minimum = calc["ADX"].min()
 
@@ -189,6 +182,9 @@ def create_profile(adx, tf):
     std = calc["ADX"].std()
 
 
+    # ======================================
+    # Position
+    # ======================================
 
     if maximum != minimum:
 
@@ -203,55 +199,128 @@ def create_profile(adx, tf):
         position = 0
 
 
+    # ======================================
+    # ADX Direction
+    # ======================================
+
+    change = current - previous
+
+
+    if change > 0:
+
+        direction = "UP"
+
+    else:
+
+        direction = "DOWN"
+
+
+    # ======================================
+    # Change Rate
+    # ======================================
+
+    if previous != 0:
+
+        change_rate = (
+            change / previous
+        ) * 100
+
+    else:
+
+        change_rate = 0
+
+
+    # ======================================
+    # Momentum
+    # ======================================
+
+    if change_rate >= 5:
+
+        momentum = "UP_STRONG"
+
+    elif change_rate > 1:
+
+        momentum = "UP"
+
+    elif change_rate <= -5:
+
+        momentum = "DOWN_STRONG"
+
+    elif change_rate < -1:
+
+        momentum = "DOWN"
+
+    else:
+
+        momentum = "FLAT"
+
 
     state = get_adx_state(
         tf,
-        current
+        current,
     )
 
 
     zone = get_zone(
         tf,
-        current
+        current,
     )
-
 
 
     profile = {
 
         "CURRENT": round(
             current,
-            3
+            3,
         ),
+
+        "PREVIOUS": round(
+            previous,
+            3,
+        ),
+
+        "ADX_DIRECTION": direction,
+
+        "ADX_CHANGE": round(
+            change,
+            3,
+        ),
+
+        "ADX_CHANGE_RATE": round(
+            change_rate,
+            2,
+        ),
+
+        "ADX_MOMENTUM": momentum,
 
         "MIN": round(
             minimum,
-            3
+            3,
         ),
 
         "MAX": round(
             maximum,
-            3
+            3,
         ),
 
         "AVERAGE": round(
             average,
-            3
+            3,
         ),
 
         "MEDIAN": round(
             median,
-            3
+            3,
         ),
 
         "STD": round(
             std,
-            3
+            3,
         ),
 
         "POSITION": round(
             position,
-            3
+            3,
         ),
 
         "ZONE": zone,
@@ -260,26 +329,21 @@ def create_profile(adx, tf):
 
         "TREND_STRENGTH": state,
 
-        "DATA_USED":
+        "DATA_USED": len(calc),
 
-            len(calc),
-
-        "DATA_EXCLUDED":
-
-            len(adx)-len(calc),
+        "DATA_EXCLUDED": len(adx) - len(calc),
 
         "TO_MIN": round(
-            current-minimum,
-            3
+            current - minimum,
+            3,
         ),
 
         "TO_MAX": round(
-            maximum-current,
-            3
+            maximum - current,
+            3,
         ),
 
     }
-
 
     return profile
 
