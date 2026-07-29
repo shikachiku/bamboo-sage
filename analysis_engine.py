@@ -17,6 +17,7 @@ from indicators.highlow5 import calculate as highlow5
 from indicators.macd import calculate as macd
 from indicators.stochastic import calculate as stochastic
 from indicators.swing import calculate as swing
+from indicators.moving_average import calculate as moving_average
 
 
 # ======================================
@@ -132,6 +133,12 @@ def process(
     # Stochastic
     # -----------------------------
     df = stochastic(df)
+    
+    # -----------------------------
+    # Moving Average
+    # -----------------------------
+
+    df = moving_average(df)
     
 
     save_analysis(
