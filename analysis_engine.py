@@ -18,6 +18,7 @@ from indicators.macd import calculate as macd
 from indicators.stochastic import calculate as stochastic
 from indicators.swing import calculate as swing
 from indicators.moving_average import calculate as moving_average
+from indicators.wick import calculate as wick
 
 
 # ======================================
@@ -101,6 +102,12 @@ def process(
 
     if df is None:
         return
+
+    # -----------------------------
+    # Wick
+    # -----------------------------
+
+    df = wick(df)
 
     # -----------------------------
     # Heikin Ashi
