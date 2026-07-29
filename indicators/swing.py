@@ -1,7 +1,5 @@
 import pandas as pd
 
-from indicator_base import run_indicator
-
 
 # ======================================
 # Parameter
@@ -89,14 +87,3 @@ def calculate(data):
 
     return result
 
-
-# ======================================
-# MAIN
-# ======================================
-
-if __name__ == "__main__":
-
-    run_indicator(
-        INDICATOR,
-        calculate,
-    )

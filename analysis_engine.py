@@ -13,6 +13,11 @@ from symbol_loader import load_symbols
 
 from indicators.heikin_ashi import calculate as heikin_ashi
 from indicators.adx import calculate as adx
+from indicators.highlow5 import calculate as highlow5
+from indicators.macd import calculate as macd
+from indicators.stochastic import calculate as stochastic
+from indicators.swing import calculate as swing
+
 
 # ======================================
 # Parameter
@@ -107,6 +112,27 @@ def process(
     # ADX
     # -----------------------------
     df = adx(df)
+    
+    # -----------------------------
+    # HighLow5
+    # -----------------------------
+    df = highlow5(df)
+    
+    # -----------------------------
+    # Swing
+    # -----------------------------
+    df = swing(df)
+    
+    # -----------------------------
+    # MACD
+    # -----------------------------
+    df = macd(df)
+    
+    # -----------------------------
+    # Stochastic
+    # -----------------------------
+    df = stochastic(df)
+    
 
     save_analysis(
         symbol,

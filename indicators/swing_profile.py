@@ -127,8 +127,8 @@ def process(
     input_csv = (
         DATA_PATH
         / symbol["Folder"]
-        / "indicator"
-        / "swing"
+                
+        / "analysis"
         / f"{tf}.csv"
     )
 
