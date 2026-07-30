@@ -40,9 +40,7 @@ def calculate(data):
 
 
     high = result["High"]
-
     low = result["Low"]
-
     close = result["Close"]
 
 
@@ -53,18 +51,14 @@ def calculate(data):
 
     lowest_low = (
         low
-        .rolling(
-            LENGTH
-        )
+        .rolling(LENGTH)
         .min()
     )
 
 
     highest_high = (
         high
-        .rolling(
-            LENGTH
-        )
+        .rolling(LENGTH)
         .max()
     )
 
@@ -75,23 +69,14 @@ def calculate(data):
     # ===================================
 
     raw_k = (
-
         (
-            close
-            -
-            lowest_low
+            close - lowest_low
         )
-
         /
-
         (
-            highest_high
-            -
-            lowest_low
+            highest_high - lowest_low
         )
-
     ) * 100
-
 
 
     raw_k = raw_k.fillna(0)
@@ -103,15 +88,9 @@ def calculate(data):
     # ===================================
 
     stoch_k = (
-
         raw_k
-
-        .rolling(
-            SMOOTH_K
-        )
-
+        .rolling(SMOOTH_K)
         .mean()
-
     )
 
 
@@ -121,17 +100,10 @@ def calculate(data):
     # ===================================
 
     stoch_d = (
-
         stoch_k
-
-        .rolling(
-            SMOOTH_D
-        )
-
+        .rolling(SMOOTH_D)
         .mean()
-
     )
-
 
 
     result["STOCH_K"] = stoch_k
@@ -145,22 +117,14 @@ def calculate(data):
     # ===================================
 
     result["STOCH_STATE"] = (
-
         result["STOCH_K"]
-
         >
-
         result["STOCH_D"]
-
     ).map(
-
         {
             True: "UP",
-
             False: "DOWN",
-
         }
-
     )
 
 
@@ -171,17 +135,14 @@ def calculate(data):
 
     cross = []
 
-    for i in range(len(result)):
 
+    for i in range(len(result)):
 
         if i == 0:
 
-            cross.append(
-                "NONE"
-            )
+            cross.append("NONE")
 
             continue
-
 
 
         prev_k = result["STOCH_K"].iloc[i-1]
@@ -196,13 +157,9 @@ def calculate(data):
 
 
         if (
-
             prev_k <= prev_d
-
             and
-
             current_k > current_d
-
         ):
 
             cross.append(
@@ -210,15 +167,10 @@ def calculate(data):
             )
 
 
-
         elif (
-
             prev_k >= prev_d
-
             and
-
             current_k < current_d
-
         ):
 
             cross.append(
@@ -231,7 +183,6 @@ def calculate(data):
             cross.append(
                 "NONE"
             )
-
 
 
     result["STOCH_CROSS"] = cross
@@ -248,11 +199,9 @@ def calculate(data):
 
             return "OVERBOUGHT"
 
-
         elif value <= 20:
 
             return "OVERSOLD"
-
 
         else:
 
@@ -261,14 +210,133 @@ def calculate(data):
 
 
     result["STOCH_ZONE"] = (
-
         result["STOCH_K"]
-
         .apply(zone)
-
     )
 
 
 
-    return result
+    # ===================================
+    # Wave Detection
+    # ===================================
 
+    high_touch = []
+
+    wave_break = []
+
+    wave_state = []
+
+
+    touched = False
+
+    waiting = False
+
+
+
+    for i in range(len(result)):
+
+
+        k = result["STOCH_K"].iloc[i]
+
+        signal = result["STOCH_CROSS"].iloc[i]
+
+
+
+        # -------------------------------
+        # Golden Cross
+        # -------------------------------
+
+        if signal == "GOLDEN":
+
+            waiting = True
+
+            touched = False
+
+
+
+        # -------------------------------
+        # 80到達
+        # -------------------------------
+
+        if waiting:
+
+            if k >= 80:
+
+                touched = True
+
+                waiting = False
+
+
+
+        # -------------------------------
+        # Dead Cross
+        # -------------------------------
+
+        if signal == "DEAD":
+
+            if waiting and not touched:
+
+                wave_break.append(True)
+
+                wave_state.append(
+                    "BREAK"
+                )
+
+                waiting = False
+
+                touched = False
+
+            else:
+
+                wave_break.append(False)
+
+                if touched:
+
+                    wave_state.append(
+                        "RISING"
+                    )
+
+                else:
+
+                    wave_state.append(
+                        "NONE"
+                    )
+
+        else:
+
+            wave_break.append(False)
+
+
+            if touched:
+
+                wave_state.append(
+                    "RISING"
+                )
+
+            elif waiting:
+
+                wave_state.append(
+                    "WAIT_HIGH"
+                )
+
+            else:
+
+                wave_state.append(
+                    "NONE"
+                )
+
+
+
+        high_touch.append(touched)
+
+
+
+    result["STOCH_HIGH_TOUCH"] = high_touch
+
+    result["STOCH_WAVE_BREAK"] = wave_break
+
+    result["STOCH_WAVE_STATE"] = wave_state
+
+
+
+    return result

@@ -119,6 +119,49 @@ def calculate(data):
     # ===================================
 
     result["MACD_CROSS"] = ""
+    
+        # ===================================
+    # MACD Level
+    # ===================================
+
+    macd_min = result["MACD"].min()
+
+    macd_max = result["MACD"].max()
+
+
+    if macd_max != macd_min:
+
+        result["MACD_LEVEL"] = (
+            result["MACD"]
+            -
+            macd_min
+        ) / (
+            macd_max
+            -
+            macd_min
+        )
+
+    else:
+
+        result["MACD_LEVEL"] = 0.5
+
+
+
+    # ===================================
+    # MACD Slope
+    # ===================================
+
+    result["MACD_SLOPE"] = (
+        result["MACD"]
+        -
+        result["MACD"].shift(1)
+    )
+
+
+    result["MACD_SLOPE"] = (
+        result["MACD_SLOPE"]
+        .fillna(0)
+    )
 
 
 

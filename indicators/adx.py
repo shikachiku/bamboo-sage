@@ -333,6 +333,63 @@ def calculate(df):
     result["+DI"] = plus_di
 
     result["-DI"] = minus_di
+    
+    
+        # =================================
+    # ADX Level
+    # Historical Relative Position
+    # =================================
+
+    adx_min = (
+        result["ADX"]
+        .expanding()
+        .min()
+    )
+
+    adx_max = (
+        result["ADX"]
+        .expanding()
+        .max()
+    )
+
+
+    result["ADX_LEVEL"] = (
+        (
+            result["ADX"]
+            -
+            adx_min
+        )
+        /
+        (
+            adx_max
+            -
+            adx_min
+        )
+    )
+
+
+    result["ADX_LEVEL"] = (
+        result["ADX_LEVEL"]
+        .fillna(0)
+    )
+
+
+    # =================================
+    # ADX Slope
+    # =================================
+
+    result["ADX_SLOPE"] = (
+        result["ADX"]
+        -
+        result["ADX"]
+        .shift(1)
+    )
+
+
+    result["ADX_SLOPE"] = (
+        result["ADX_SLOPE"]
+        .fillna(0)
+    )
 
 
 
