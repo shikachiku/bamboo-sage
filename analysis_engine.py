@@ -37,20 +37,33 @@ TIMEFRAMES = [
 # Load RAW
 # ======================================
 
-def load_raw(symbol, timeframe):
+def load_raw(symbol, timeframe, source="tv"):
+
+
+    if source == "investing":
+
+        folder = "investraw"
+
+    else:
+
+        folder = "raw"
+
+
 
     filename = (
         DATA_PATH
         / symbol["Folder"]
-        / "raw"
+        / folder
         / f"{timeframe}.csv"
     )
+
 
     if not filename.exists():
 
         print(f"RAW Not Found : {filename}")
 
         return None
+
 
     return pd.read_csv(filename)
 
@@ -93,15 +106,20 @@ def save_analysis(
 def process(
     symbol,
     timeframe,
+    source="tv",
 ):
+
 
     df = load_raw(
         symbol,
         timeframe,
+        source,
     )
+
 
     if df is None:
         return
+
 
     # -----------------------------
     # Wick
@@ -165,7 +183,49 @@ def main():
     print("ANALYSIS ENGINE START")
     print("=" * 40)
 
-    symbols = load_symbols()
+    print()
+    print("=" * 40)
+    print(" DATA SOURCE SELECT")
+    print("=" * 40)
+    print()
+    print("Y : INVESTING (default)")
+    print("N : TradingView")
+    print()
+
+
+    answer = input(
+        "Select [Y/n]: "
+    ).strip().lower()
+
+
+    if answer == "n":
+
+        SOURCE = "tv"
+
+    else:
+
+        SOURCE = "investing"
+
+
+    print()
+
+    print(
+        "SOURCE:",
+        SOURCE
+    )
+
+    print()
+
+
+    if SOURCE == "investing":
+
+        symbols = load_symbols(
+            "invest_symbols.csv"
+        )
+
+    else:
+
+        symbols = load_symbols()
 
     for symbol in symbols:
 
@@ -179,6 +239,7 @@ def main():
             process(
                 symbol,
                 timeframe,
+                SOURCE,
             )
 
     print()
