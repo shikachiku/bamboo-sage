@@ -23,6 +23,9 @@ INDICATOR = "adx"
 # TradingView Pine v4
 PERIOD = 10
 
+# ADX smoothing
+ADX_SMOOTH = 5
+
 # Threshold
 TREND_ON = 5
 
@@ -39,12 +42,13 @@ def rma(series, length):
         dtype=float
     )
 
+
     if len(series) == 0:
         return result
 
 
-    # Pine v4 style:
-    # x := nz(x[1]) - nz(x[1])/length + value
+    # Pine style Wilder RMA
+    # seed = first value
 
     result.iloc[0] = series.iloc[0]
 
@@ -55,16 +59,14 @@ def rma(series, length):
     ):
 
         result.iloc[i] = (
-            result.iloc[i - 1]
-            -
             (
                 result.iloc[i - 1]
-                /
-                length
+                *
+                (length - 1)
             )
             +
             series.iloc[i]
-        )
+        ) / length
 
 
     return result
@@ -80,7 +82,6 @@ def calculate(df):
 
     result = df.copy()
 
-    
 
     high = result["High"]
     low = result["Low"]
@@ -89,6 +90,7 @@ def calculate(df):
 
     # =================================
     # True Range
+    # First bar = High-Low
     # =================================
 
     tr = pd.Series(
@@ -100,7 +102,12 @@ def calculate(df):
     for i in range(len(df)):
 
         if i == 0:
-            tr.iloc[i] = 0.0
+
+            tr.iloc[i] = (
+                high.iloc[i]
+                -
+                low.iloc[i]
+            )
 
         else:
 
@@ -126,7 +133,7 @@ def calculate(df):
 
     plus_dm = pd.Series(
         0.0,
-       index=df.index
+        index=df.index
     )
 
     minus_dm = pd.Series(
@@ -142,6 +149,7 @@ def calculate(df):
             -
             high.iloc[i - 1]
         )
+
 
         down_move = (
             low.iloc[i - 1]
@@ -170,89 +178,26 @@ def calculate(df):
 
 
     # =================================
-    # Pine v4 Wilder smoothing
-    # Start from 0.0
+    # Wilder RMA
+    # DI Length = 10
     # =================================
 
-    smooth_tr = pd.Series(
-        0.0,
-        index=df.index
-    )
-
-    smooth_plus = pd.Series(
-        0.0,
-        index=df.index
-    )
-
-    smooth_minus = pd.Series(
-        0.0,
-        index=df.index
+    smooth_tr = rma(
+        tr,
+        PERIOD
     )
 
 
-    for i in range(len(df)):
-
-        smooth_tr.iloc[i] = (
-            (
-                smooth_tr.iloc[i - 1]
-                if i > 0
-                else 0.0
-            )
-            -
-            (
-                (
-                    smooth_tr.iloc[i - 1]
-                    if i > 0
-                    else 0.0
-                )
-                /
-                PERIOD
-            )
-            +
-            tr.iloc[i]
-        )
+    smooth_plus = rma(
+        plus_dm,
+        PERIOD
+    )
 
 
-        smooth_plus.iloc[i] = (
-            (
-                smooth_plus.iloc[i - 1]
-                if i > 0
-                else 0.0
-            )
-            -
-            (
-                (
-                    smooth_plus.iloc[i - 1]
-                    if i > 0
-                    else 0.0
-                )
-                /
-                PERIOD
-            )
-            +
-            plus_dm.iloc[i]
-        )
-
-
-        smooth_minus.iloc[i] = (
-            (
-                smooth_minus.iloc[i - 1]
-                if i > 0
-                else 0.0
-            )
-            -
-            (
-                (
-                    smooth_minus.iloc[i - 1]
-                    if i > 0
-                    else 0.0
-                )
-                /
-                PERIOD
-            )
-            +
-            minus_dm.iloc[i]
-        )
+    smooth_minus = rma(
+        minus_dm,
+        PERIOD
+    )
 
 
 
@@ -278,9 +223,24 @@ def calculate(df):
     )
 
 
-    plus_di = plus_di.fillna(0)
+    plus_di = (
+        plus_di
+        .replace(
+            [float("inf")],
+            0
+        )
+        .fillna(0)
+    )
 
-    minus_di = minus_di.fillna(0)
+
+    minus_di = (
+        minus_di
+        .replace(
+            [float("inf")],
+            0
+        )
+        .fillna(0)
+    )
 
 
 
@@ -301,31 +261,32 @@ def calculate(df):
             +
             minus_di
         )
-    ) * 100
-
-
-    dx = dx.replace(
-        [float("inf")],
-        0
+        *
+        100
     )
 
-    dx = dx.fillna(0)
+
+    dx = (
+        dx
+        .replace(
+            [float("inf")],
+            0
+        )
+        .fillna(0)
+    )
 
 
 
     # =================================
     # ADX
-    # Pine v4:
-    # ADX = SMA(DX, PERIOD)
+    # ADX Smoothing = 5
     # =================================
 
-    adx = (
-        dx
-        .rolling(
-            PERIOD
-        )
-        .mean()
+    adx = rma(
+        dx,
+        ADX_SMOOTH
     )
+
 
 
     result["ADX"] = adx
@@ -333,11 +294,11 @@ def calculate(df):
     result["+DI"] = plus_di
 
     result["-DI"] = minus_di
-    
-    
-        # =================================
+
+
+
+    # =================================
     # ADX Level
-    # Historical Relative Position
     # =================================
 
     adx_min = (
@@ -370,8 +331,13 @@ def calculate(df):
 
     result["ADX_LEVEL"] = (
         result["ADX_LEVEL"]
+        .replace(
+            [float("inf")],
+            0
+        )
         .fillna(0)
     )
+
 
 
     # =================================
