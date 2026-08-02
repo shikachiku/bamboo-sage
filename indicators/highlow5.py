@@ -1,7 +1,6 @@
 import pandas as pd
 
 
-
 # ======================================
 # Parameter
 # ======================================
@@ -13,6 +12,8 @@ LENGTH = 5
 
 # ======================================
 # High Low 5
+# Heikin Ashi based
+# Previous period only
 # ======================================
 
 def calculate(data):
@@ -21,22 +22,20 @@ def calculate(data):
 
 
     # ----------------------------
-    # High5MA
+    # Previous HA High / Low 5 MA
     # ----------------------------
 
     result["High5MA"] = (
-        data["High"]
+        data["HA_High"]
+        .shift(1)
         .rolling(LENGTH)
         .mean()
     )
 
 
-    # ----------------------------
-    # Low5MA
-    # ----------------------------
-
     result["Low5MA"] = (
-        data["Low"]
+        data["HA_Low"]
+        .shift(1)
         .rolling(LENGTH)
         .mean()
     )
@@ -44,17 +43,18 @@ def calculate(data):
 
     # ----------------------------
     # Distance
+    # HA_Close based
     # ----------------------------
 
     result["DIST_TO_HIGH5"] = (
         result["High5MA"]
         -
-        result["Close"]
+        result["HA_Close"]
     )
 
 
     result["DIST_TO_LOW5"] = (
-        result["Close"]
+        result["HA_Close"]
         -
         result["Low5MA"]
     )
@@ -62,17 +62,18 @@ def calculate(data):
 
     # ----------------------------
     # Break
+    # HA_Close based
     # ----------------------------
 
     result["BREAK_HIGH5"] = (
-        result["Close"]
+        result["HA_Close"]
         >
         result["High5MA"]
     )
 
 
     result["BREAK_LOW5"] = (
-        result["Close"]
+        result["HA_Close"]
         <
         result["Low5MA"]
     )
@@ -88,12 +89,10 @@ def calculate(data):
 
 
     result["RISK_5"] = (
-        result["Close"]
+        result["HA_Close"]
         -
         result["STOP_PRICE_5"]
     )
 
 
     return result
-
-
