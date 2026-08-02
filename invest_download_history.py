@@ -18,7 +18,34 @@ SAVE_DIR = DATA_PATH
 # History Range
 # ===================================
 
-HISTORY_DAYS = 365*30
+# timeframe別取得期間
+# ここを変更するだけで取得期間を変更可能
+
+HISTORY_DAYS = {
+
+
+    # 日足
+    # 例：50年
+    "1D":
+        365 * 10,
+
+
+    # 1時間足
+    # 例：10年
+    "1H":
+        200,
+
+
+    # 週足
+    "1W":
+        365 * 30,
+
+
+    # 月足
+    "1M":
+        365 * 30,
+
+}
 
 # ===================================
 # Timezone
@@ -170,6 +197,15 @@ def get_history(
     )
 
 
+    history_days = HISTORY_DAYS[timeframe]
+
+
+    print(
+        "REQUEST DAYS:",
+        history_days
+    )
+
+
     params = {
 
         "symbol":
@@ -179,7 +215,9 @@ def get_history(
             resolution,
 
         "from":
-            now - HISTORY_DAYS * 24 * 60 * 60,
+            now
+            -
+            history_days * 24 * 60 * 60,
 
         "to":
             now,
@@ -207,7 +245,6 @@ def get_history(
         return None
 
 
-
     data = r.json()
 
 
@@ -216,7 +253,6 @@ def get_history(
         print(data)
 
         return None
-
 
 
     return data
