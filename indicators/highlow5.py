@@ -22,21 +22,40 @@ def calculate(data):
 
 
     # ----------------------------
-    # Previous HA High / Low 5 MA
+    # Previous HA High / Low
+    # ----------------------------
+
+    high = (
+        data["HA_High"]
+        .shift(1)
+    )
+
+    low = (
+        data["HA_Low"]
+        .shift(1)
+    )
+
+
+    # ----------------------------
+    # SMMA
     # ----------------------------
 
     result["High5MA"] = (
-        data["HA_High"]
-        .shift(1)
-        .rolling(LENGTH)
+        high
+        .ewm(
+            alpha=1 / LENGTH,
+            adjust=False
+        )
         .mean()
     )
 
 
     result["Low5MA"] = (
-        data["HA_Low"]
-        .shift(1)
-        .rolling(LENGTH)
+        low
+        .ewm(
+            alpha=1 / LENGTH,
+            adjust=False
+        )
         .mean()
     )
 
@@ -62,7 +81,6 @@ def calculate(data):
 
     # ----------------------------
     # Break
-    # HA_Close based
     # ----------------------------
 
     result["BREAK_HIGH5"] = (

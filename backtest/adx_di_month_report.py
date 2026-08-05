@@ -44,9 +44,9 @@ BACKTEST_DIR = (
 
 def load_result():
 
-    files = sorted(
-        BACKTEST_DIR.glob(
-            f"{STRATEGY_NAME}_result_*.csv"
+    files = list(
+        DATA_PATH.glob(
+            "**/backtest/adx_di_month_result_*.csv"
         )
     )
 
@@ -58,20 +58,57 @@ def load_result():
         )
 
 
-    latest_file = files[-1]
+    results = []
 
 
-    print()
-    print("LOAD RESULT")
-    print(latest_file)
+    for file in files:
+
+        try:
+
+            df = pd.read_csv(
+                file,
+                parse_dates=[
+                    "ENTRY_DATE",
+                    "EXIT_DATE"
+                ]
+            )
 
 
-    return pd.read_csv(
-        latest_file,
-        parse_dates=[
-            "ENTRY_DATE",
-            "EXIT_DATE",
-        ]
+            # ----------------------------
+            # Symbol
+            # ----------------------------
+
+            df["SYMBOL"] = (
+                file
+                .parents[1]
+                .name
+            )
+
+
+            results.append(
+                df
+            )
+
+
+        except Exception as e:
+
+            print(
+                "SKIP:",
+                file,
+                e
+            )
+
+
+    if len(results) == 0:
+
+        raise FileNotFoundError(
+            "No valid backtest result"
+        )
+
+
+    return pd.concat(
+        results,
+        ignore_index=True
     )
 
 
