@@ -1,5 +1,9 @@
 from pathlib import Path
+
 import sys
+import os
+from concurrent.futures import ProcessPoolExecutor
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 
@@ -172,6 +176,27 @@ def process(
         df,
     )
 
+# ======================================
+# Process One Symbol
+# ======================================
+
+def process_symbol(
+    symbol,
+    source,
+):
+
+    print()
+    print("=" * 60)
+    print(symbol["Name"])
+    print("=" * 60)
+
+    for timeframe in TIMEFRAMES:
+
+        process(
+            symbol,
+            timeframe,
+            source,
+        )
 
 # ======================================
 # MAIN
@@ -183,64 +208,45 @@ def main():
     print("ANALYSIS ENGINE START")
     print("=" * 40)
 
-    print()
-    print("=" * 40)
-    print(" DATA SOURCE SELECT")
-    print("=" * 40)
-    print()
-    print("Y : INVESTING (default)")
-    print("N : TradingView")
-    print()
-
-
-    answer = input(
-        "Select [Y/n]: "
-    ).strip().lower()
-
-
-    if answer == "n":
-
-        SOURCE = "tv"
-
-    else:
-
-        SOURCE = "investing"
-
+    SOURCE = "investing"
 
     print()
-
     print(
         "SOURCE:",
         SOURCE
     )
+    print()
+
+    symbols = load_symbols(
+        "invest_symbols.csv"
+    )
+
+    cpu_count = os.cpu_count() or 1
+
+    workers = min(
+        cpu_count,
+        len(symbols)
+    )
+
+    print(
+        f"CPU CORES   : {cpu_count}"
+    )
+
+    print(
+        f"CPU WORKERS : {workers}"
+    )
 
     print()
 
+    with ProcessPoolExecutor(
+        max_workers=workers
+    ) as executor:
 
-    if SOURCE == "investing":
-
-        symbols = load_symbols(
-            "invest_symbols.csv"
+        executor.map(
+            process_symbol,
+            symbols,
+            [SOURCE] * len(symbols)
         )
-
-    else:
-
-        symbols = load_symbols()
-
-    for symbol in symbols:
-
-        print()
-        print("=" * 60)
-        print(symbol["Name"])
-        print("=" * 60)
-
-        for timeframe in TIMEFRAMES:
-
-            process(
-                symbol,
-                timeframe,
-                SOURCE,
-            )
 
     print()
     print("=" * 40)

@@ -844,49 +844,19 @@ def save_report(df, dates):
     )
 
 
+     # =================================
+    # Save Excel from template
     # =================================
-    # Save Excel
-    # =================================
 
-    workbook = Workbook()
-
-    sheet = workbook.active
-
-    sheet.title = "REPORT"
+    from openpyxl import load_workbook
+    import shutil
 
 
-    # Header
-    sheet.append(
-        ["REPORT_DATE", report_time]
+    TEMPLATE_FILE = (
+        REPORT_ROOT
+        / "template"
+        / "summary_template.xlsx"
     )
-
-    sheet.append(
-        ["MONTH_DATE", dates["MONTH_DATE"]]
-    )
-
-    sheet.append(
-        ["WEEK_DATE", dates["WEEK_DATE"]]
-    )
-
-    sheet.append(
-        ["DAY_DATE", dates["DAY_DATE"]]
-    )
-
-    sheet.append([])
-
-
-    # Table Header
-    sheet.append(
-        list(report_df.columns)
-    )
-
-
-    # Table Data
-    for row in report_df.itertuples(index=False):
-
-        sheet.append(
-            list(row)
-        )
 
 
     excel_file = (
@@ -895,12 +865,111 @@ def save_report(df, dates):
     )
 
 
+    # -----------------------------
+    # Template copy
+    # -----------------------------
+
+    shutil.copy(
+        TEMPLATE_FILE,
+        excel_file
+    )
+
+
+    # -----------------------------
+    # Open template
+    # -----------------------------
+
+    workbook = load_workbook(
+        excel_file
+    )
+
+
+    sheet = workbook[
+        "REPORT"
+    ]
+
+
+    # -----------------------------
+    # Clear old data area
+    # -----------------------------
+
+    for row in sheet.iter_rows(
+        min_row=7
+    ):
+
+        for cell in row:
+
+            cell.value = None
+
+
+
+    # -----------------------------
+    # Header
+    # -----------------------------
+
+    sheet["A1"] = "REPORT_DATE"
+    sheet["B1"] = report_time
+
+    sheet["A2"] = "MONTH_DATE"
+    sheet["B2"] = dates["MONTH_DATE"]
+
+    sheet["A3"] = "WEEK_DATE"
+    sheet["B3"] = dates["WEEK_DATE"]
+
+    sheet["A4"] = "DAY_DATE"
+    sheet["B4"] = dates["DAY_DATE"]
+
+
+
+    # -----------------------------
+    # Table Header
+    # -----------------------------
+
+    start_row = 6
+
+
+    for col, value in enumerate(
+        report_df.columns,
+        1
+    ):
+
+        sheet.cell(
+            start_row,
+            col,
+            value
+        )
+
+
+
+    # -----------------------------
+    # Table Data
+    # -----------------------------
+
+    for r, row in enumerate(
+        report_df.itertuples(index=False),
+        start_row + 1
+    ):
+
+
+        for c, value in enumerate(
+            row,
+            1
+        ):
+
+            sheet.cell(
+                r,
+                c,
+                value
+            )
+
+
     workbook.save(
         excel_file
     )
 
+
     print(
-        output_file
+        excel_file
     )
 
 

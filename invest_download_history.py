@@ -113,45 +113,6 @@ def get_session():
     return session
 
 
-
-# ===================================
-# symbol情報取得
-# ===================================
-
-def get_symbol_info(session, ticker):
-
-    url = (
-        BASE +
-        "/691ff947cd653013b349943b50e12e94/"
-        "1785478104/"
-        "11/11/29/symbols"
-    )
-
-
-    params = {
-        "symbol": ticker
-    }
-
-
-    r = session.get(
-        url,
-        params=params,
-        timeout=10,
-    )
-
-
-    print("SYMBOL STATUS:", r.status_code)
-
-
-    if r.status_code != 200:
-        print(r.text)
-        return None
-
-
-    return r.json()
-
-
-
 # ===================================
 # candle取得
 # ===================================
@@ -350,6 +311,7 @@ def convert_dataframe(
 # ===================================
 
 def download(
+    session,
     ticker,
     folder,
     timeframe
@@ -366,24 +328,9 @@ def download(
     )
 
 
-    session = get_session()
-
-
-    info = get_symbol_info(
-        session,
-        ticker
-    )
-
-
-    if info is None:
-
-        print(
-            "Symbol info failed"
-        )
-
-        return
-
-
+    # -------------------------------
+    # History Download
+    # -------------------------------
 
     data = get_history(
         session,
@@ -394,12 +341,15 @@ def download(
 
     if data is None:
 
+        print()
+
         print(
-            "History download failed"
+            "SKIP:",
+            folder,
+            timeframe
         )
 
-        return
-
+        return False
 
 
     df = convert_dataframe(
@@ -514,6 +464,8 @@ def download(
         len(df)
     )
 
+    return True
+
 
 
 # ===================================
@@ -526,6 +478,13 @@ def main():
     symbols = pd.read_csv(
         INVEST_SYMBOL_FILE
     )
+
+
+    # ===============================
+    # Create Session Once
+    # ===============================
+
+    session = get_session()
 
 
     for _, row in symbols.iterrows():
@@ -541,6 +500,8 @@ def main():
 
 
             download(
+
+                session,
 
                 str(row["Investing"]),
 
