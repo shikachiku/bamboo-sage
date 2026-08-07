@@ -38,11 +38,9 @@ def calculate(data):
 
     result = data.copy()
 
-
     high = result["High"]
     low = result["Low"]
     close = result["Close"]
-
 
     # ===================================
     # Lowest / Highest
@@ -54,17 +52,21 @@ def calculate(data):
         .min()
     )
 
-
     highest_high = (
         high
         .rolling(LENGTH)
         .max()
     )
 
-
     # ===================================
     # Raw %K
     # ===================================
+
+    price_range = (
+        highest_high
+        -
+        lowest_low
+    )
 
     raw_k = (
         (
@@ -73,17 +75,10 @@ def calculate(data):
             lowest_low
         )
         /
-        (
-            highest_high
-            -
-            lowest_low
-        )
+        price_range
     ) * 100
 
-
     raw_k = raw_k.fillna(0)
-
-
 
     # ===================================
     # Smooth K
@@ -95,7 +90,6 @@ def calculate(data):
         .mean()
     )
 
-
     # ===================================
     # Smooth D
     # ===================================
@@ -106,392 +100,417 @@ def calculate(data):
         .mean()
     )
 
-
     result["STOCH_K"] = stoch_k
 
     result["STOCH_D"] = stoch_d
 
-
-
     # ===================================
-    # State (NumPy)
+    # State
     # ===================================
 
     result["STOCH_STATE"] = (
         pd.Series(
-            (
-                stoch_k.values
-                >
-                stoch_d.values
-            ),
+            "DOWN",
             index=result.index,
-        )
-        .map(
-            {
-                True: "UP",
-                False: "DOWN",
-            }
         )
     )
 
-
+    result.loc[
+        stoch_k > stoch_d,
+        "STOCH_STATE"
+    ] = "UP"
 
     # ===================================
-    # Cross (NumPy)
+    # Cross
     # ===================================
-
-    k = stoch_k.values
-
-    d = stoch_d.values
-
 
     cross = (
-        [
-            "NONE"
-        ]
+        ["NONE"]
         *
         len(result)
     )
 
-
-    golden = (
-        (k[1:] > d[1:])
-        &
-        (k[:-1] <= d[:-1])
-    )
-
-
-    dead = (
-        (k[1:] < d[1:])
-        &
-        (k[:-1] >= d[:-1])
-    )
-
-
-    cross_array = (
-        result.index[1:]
-    )
-
-
-    for idx, g, de in zip(
-        cross_array,
-        golden,
-        dead,
-    ):
-
-        if g:
-
-            cross[
-                result.index.get_loc(idx)
-            ] = "GOLDEN"
-
-
-        elif de:
-
-            cross[
-                result.index.get_loc(idx)
-            ] = "DEAD"
-
-
-
-    result["STOCH_CROSS"] = cross
-
-
-
-    # ===================================
-    # Zone (NumPy)
-    # ===================================
-
     k_values = stoch_k.values
 
+    d_values = stoch_d.values
 
-    zone = pd.Series(
-        "MIDDLE",
-        index=result.index,
-    )
+    for i in range(1, len(result)):
 
+        k_prev = k_values[i - 1]
 
-    zone.loc[
-        k_values >= 80
-    ] = "OVERBOUGHT"
+        d_prev = d_values[i - 1]
 
+        k_now = k_values[i]
 
-    zone.loc[
-        k_values <= 20
-    ] = "OVERSOLD"
+        d_now = d_values[i]
 
+        if (
+            pd.isna(k_prev)
+            or
+            pd.isna(d_prev)
+            or
+            pd.isna(k_now)
+            or
+            pd.isna(d_now)
+        ):
 
-    result["STOCH_ZONE"] = zone
+            continue
 
+        # -----------------------------------
+        # Golden Cross
+        # -----------------------------------
 
+        if (
+            k_now > d_now
+            and
+            k_prev <= d_prev
+        ):
 
-    # ===================================
-    # Wave Detection
-    # State machine
-    # ===================================
+            cross[i] = "GOLDEN"
 
-    high_touch = []
+        # -----------------------------------
+        # Dead Cross
+        # -----------------------------------
 
-    wave_break = []
+        elif (
+            k_now < d_now
+            and
+            k_prev >= d_prev
+        ):
 
-    wave_state = []
+            cross[i] = "DEAD"
 
-
-    touched = False
-
-    waiting = False
-
-
-
-    for i in range(len(result)):
-
-
-        k_value = k[i]
-
-        signal = cross[i]
-
-
-
-        if signal == "GOLDEN":
-
-            waiting = True
-
-            touched = False
-
-
-
-        if waiting:
-
-            if k_value >= 80:
-
-                touched = True
-
-                waiting = False
-
-
-
-        if signal == "DEAD":
-
-
-            if waiting and not touched:
-
-                wave_break.append(True)
-
-                wave_state.append(
-                    "BREAK"
-                )
-
-                waiting = False
-
-                touched = False
-
-
-            else:
-
-                wave_break.append(False)
-
-
-                if touched:
-
-                    wave_state.append(
-                        "RISING"
-                    )
-
-                else:
-
-                    wave_state.append(
-                        "NONE"
-                    )
-
-
-        else:
-
-            wave_break.append(False)
-
-
-            if touched:
-
-                wave_state.append(
-                    "RISING"
-                )
-
-            elif waiting:
-
-                wave_state.append(
-                    "WAIT_HIGH"
-                )
-
-            else:
-
-                wave_state.append(
-                    "NONE"
-                )
-
-
-        high_touch.append(touched)
-
-
-
-    result["STOCH_HIGH_TOUCH"] = high_touch
-
-    result["STOCH_WAVE_BREAK"] = wave_break
-
-    result["STOCH_WAVE_STATE"] = wave_state
-
-
-
-    return result
-
-
+    result["STOCH_CROSS"] = cross
 
     # ===================================
     # Zone
     # ===================================
 
-    def zone(value):
+    zone = []
 
-        if value >= 80:
+    for value in k_values:
 
-            return "OVERBOUGHT"
+        if pd.isna(value):
+
+            zone.append("MIDDLE")
+
+        elif value >= 80:
+
+            zone.append("OVERBOUGHT")
 
         elif value <= 20:
 
-            return "OVERSOLD"
+            zone.append("OVERSOLD")
 
         else:
 
-            return "MIDDLE"
+            zone.append("MIDDLE")
 
-
-
-    result["STOCH_ZONE"] = (
-        result["STOCH_K"]
-        .apply(zone)
-    )
-
-
+    result["STOCH_ZONE"] = zone
 
     # ===================================
-    # Wave Detection
+    # Wave State
+    #
+    # Initial:
+    #
+    # GOLDEN
+    #   ↓
+    # K >= 80
+    #   ↓
+    # SLOW >= 80
+    #   ↓
+    # WAVE CONFIRMED
+    #
+    # After confirmation:
+    #
+    # Pullback
+    #   ↓
+    # GOLDEN
+    #   ↓
+    # BUY
+    #   ↓
+    # K >= 80
+    #   ↓
+    # Continue
+    #
+    # K < 80
+    #   ↓
+    # DEAD
+    #   ↓
+    # BREAK
     # ===================================
-
-    high_touch = []
-
-    wave_break = []
 
     wave_state = []
 
+    wave_break = []
 
-    touched = False
+    high_touch = []
 
-    waiting = False
+    buy_signal = []
 
+    # ===================================
+    # State Variables
+    # ===================================
 
+    wave_active = False
+
+    initial_waiting = False
+
+    initial_k_touch = False
+
+    initial_slow_touch = False
+
+    pullback = False
+
+    waiting_high = False
+
+    # ===================================
+    # Main State Machine
+    # ===================================
 
     for i in range(len(result)):
 
+        k = k_values[i]
 
-        k = result["STOCH_K"].iloc[i]
+        slow = d_values[i]
 
-        signal = result["STOCH_CROSS"].iloc[i]
+        signal = cross[i]
 
+        current_state = "NONE"
 
+        current_break = False
 
-        # -------------------------------
-        # Golden Cross
-        # -------------------------------
+        current_buy = False
 
-        if signal == "GOLDEN":
+        # ===================================
+        # Invalid Data
+        # ===================================
 
-            waiting = True
+        if (
+            pd.isna(k)
+            or
+            pd.isna(slow)
+        ):
 
-            touched = False
+            wave_state.append(
+                current_state
+            )
 
+            wave_break.append(False)
 
+            high_touch.append(False)
 
-        # -------------------------------
-        # 80到達
-        # -------------------------------
+            buy_signal.append(False)
 
-        if waiting:
+            continue
 
-            if k >= 80:
+        # ===================================
+        # Initial Wave
+        # ===================================
 
-                touched = True
+        if not wave_active:
 
-                waiting = False
+            # --------------------------------
+            # Golden Cross starts Wave check
+            # --------------------------------
 
+            if signal == "GOLDEN":
 
+                initial_waiting = True
 
-        # -------------------------------
-        # Dead Cross
-        # -------------------------------
+                initial_k_touch = False
 
-        if signal == "DEAD":
+                initial_slow_touch = False
 
-            if waiting and not touched:
+            # --------------------------------
+            # Waiting for K / SLOW 80
+            # --------------------------------
 
-                wave_break.append(True)
+            if initial_waiting:
 
-                wave_state.append(
-                    "BREAK"
-                )
+                if k >= 80:
 
-                waiting = False
+                    initial_k_touch = True
 
-                touched = False
+                if slow >= 80:
 
-            else:
+                    initial_slow_touch = True
 
-                wave_break.append(False)
+                # --------------------------------
+                # Initial Wave Confirmed
+                # --------------------------------
 
-                if touched:
+                if (
+                    initial_k_touch
+                    and
+                    initial_slow_touch
+                ):
 
-                    wave_state.append(
-                        "RISING"
+                    wave_active = True
+
+                    initial_waiting = False
+
+                    initial_k_touch = False
+
+                    initial_slow_touch = False
+
+                    pullback = False
+
+                    waiting_high = False
+
+                    current_state = (
+                        "WAVE_CONFIRMED"
                     )
 
                 else:
 
-                    wave_state.append(
-                        "NONE"
+                    current_state = (
+                        "WAIT_WAVE"
                     )
-
-        else:
-
-            wave_break.append(False)
-
-
-            if touched:
-
-                wave_state.append(
-                    "RISING"
-                )
-
-            elif waiting:
-
-                wave_state.append(
-                    "WAIT_HIGH"
-                )
 
             else:
 
-                wave_state.append(
-                    "NONE"
+                current_state = "NONE"
+
+        # ===================================
+        # Active Wave
+        # ===================================
+
+        else:
+
+            # =================================
+            # Normal Active State
+            # =================================
+
+            if not pullback and not waiting_high:
+
+                # --------------------------------
+                # K below 80 = Pullback
+                # --------------------------------
+
+                if k < 80:
+
+                    pullback = True
+
+                    current_state = (
+                        "PULLBACK"
+                    )
+
+                else:
+
+                    current_state = (
+                        "WAVE_ACTIVE"
+                    )
+
+            # =================================
+            # Pullback
+            # =================================
+
+            elif pullback:
+
+                current_state = (
+                    "PULLBACK"
                 )
 
+                # --------------------------------
+                # Golden Cross after Pullback
+                # --------------------------------
 
+                if signal == "GOLDEN":
 
-        high_touch.append(touched)
+                    current_buy = True
 
+                    pullback = False
 
+                    waiting_high = True
 
-    result["STOCH_HIGH_TOUCH"] = high_touch
+                    current_state = "BUY"
 
-    result["STOCH_WAVE_BREAK"] = wave_break
+            # =================================
+            # After BUY
+            # Waiting for K >= 80
+            # =================================
 
-    result["STOCH_WAVE_STATE"] = wave_state
+            elif waiting_high:
 
+                # --------------------------------
+                # K returns to 80
+                # --------------------------------
 
+                if k >= 80:
+
+                    waiting_high = False
+
+                    current_state = (
+                        "WAVE_CONTINUE"
+                    )
+
+                # --------------------------------
+                # DEAD before K returns to 80
+                # --------------------------------
+
+                elif signal == "DEAD":
+
+                    wave_active = False
+
+                    initial_waiting = False
+
+                    initial_k_touch = False
+
+                    initial_slow_touch = False
+
+                    pullback = False
+
+                    waiting_high = False
+
+                    current_break = True
+
+                    current_state = "BREAK"
+
+                else:
+
+                    current_state = (
+                        "WAIT_HIGH"
+                    )
+
+        # ===================================
+        # Output
+        # ===================================
+
+        wave_state.append(
+            current_state
+        )
+
+        wave_break.append(
+            current_break
+        )
+
+        high_touch.append(
+            k >= 80
+        )
+
+        buy_signal.append(
+            current_buy
+        )
+
+    # ===================================
+    # Result Columns
+    # ===================================
+
+    result["STOCH_HIGH_TOUCH"] = (
+        high_touch
+    )
+
+    result["STOCH_WAVE_BREAK"] = (
+        wave_break
+    )
+
+    result["STOCH_WAVE_STATE"] = (
+        wave_state
+    )
+
+    result["STOCH_BUY"] = (
+        buy_signal
+    )
 
     return result
