@@ -62,43 +62,28 @@ def calculate(data):
 
     # ----------------------------
     # Trend
+    # ベクトル化
     # ----------------------------
+
+    diff = (
+        result["SMA_200"]
+        .diff()
+    )
+
 
     result["SMA200_TREND"] = ""
 
 
-    for i in range(1, len(result)):
+    result.loc[
+        diff > 0,
+        "SMA200_TREND"
+    ] = "UP"
 
 
-        current = result["SMA_200"].iloc[i]
-
-        previous = result["SMA_200"].iloc[i-1]
-
-
-        if pd.isna(current) or pd.isna(previous):
-
-            continue
-
-
-        if current > previous:
-
-            result.iloc[
-                i,
-                result.columns.get_loc(
-                    "SMA200_TREND"
-                )
-            ] = "UP"
-
-
-        elif current < previous:
-
-            result.iloc[
-                i,
-                result.columns.get_loc(
-                    "SMA200_TREND"
-                )
-            ] = "DOWN"
-
+    result.loc[
+        diff < 0,
+        "SMA200_TREND"
+    ] = "DOWN"
 
 
     return result

@@ -1,5 +1,5 @@
 import pandas as pd
-
+import numpy as np
 
 # ===================================
 # Parameter
@@ -16,12 +16,11 @@ def calculate(data):
 
     result = data.copy()
 
-
     # ===================================
     # HA Close
     # ===================================
 
-    result["HA_Close"] = (
+    ha_close = (
         result["Open"]
         + result["High"]
         + result["Low"]
@@ -31,30 +30,30 @@ def calculate(data):
 
     # ===================================
     # HA Open
+    # NumPy
     # ===================================
 
-    result["HA_Open"] = 0.0
+    ha_close_np = ha_close.to_numpy()
 
+    ha_open_np = np.empty(
+        len(result),
+        dtype=float,
+    )
 
-    result.iloc[
-        0,
-        result.columns.get_loc("HA_Open")
-    ] = (
+    ha_open_np[0] = (
         result["Open"].iloc[0]
         + result["Close"].iloc[0]
     ) / 2
 
-
     for i in range(1, len(result)):
 
-        result.iloc[
-            i,
-            result.columns.get_loc("HA_Open")
-        ] = (
-            result["HA_Open"].iloc[i - 1]
-            + result["HA_Close"].iloc[i - 1]
+        ha_open_np[i] = (
+            ha_open_np[i - 1]
+            + ha_close_np[i - 1]
         ) / 2
 
+    result["HA_Close"] = ha_close
+    result["HA_Open"] = ha_open_np
 
 
     # ===================================
@@ -103,7 +102,6 @@ def calculate(data):
             False: "RED",
         }
     )
-
 
     return result
 

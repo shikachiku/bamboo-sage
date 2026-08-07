@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -9,9 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
         str(PROJECT_ROOT)
     )
 
-
 import pandas as pd
-
 
 
 # ===================================
@@ -33,43 +32,59 @@ TREND_ON = 5
 
 # ===================================
 # Wilder RMA
+# Pine style
 # ===================================
 
 def rma(series, length):
 
-    result = pd.Series(
-        index=series.index,
+    import numpy as np
+
+    if len(series) == 0:
+
+        return pd.Series(
+            index=series.index,
+            dtype=float
+        )
+
+
+    values = series.to_numpy(
         dtype=float
     )
 
 
-    if len(series) == 0:
-        return result
+    result = np.empty(
+        len(values),
+        dtype=float
+    )
 
 
-    # Pine style Wilder RMA
-    # seed = first value
+    # ---------------------------------
+    # Pine style seed
+    # ---------------------------------
 
-    result.iloc[0] = series.iloc[0]
+    result[0] = values[0]
 
 
     for i in range(
         1,
-        len(series)
+        len(values)
     ):
 
-        result.iloc[i] = (
+        result[i] = (
             (
-                result.iloc[i - 1]
+                result[i - 1]
                 *
                 (length - 1)
             )
             +
-            series.iloc[i]
+            values[i]
         ) / length
 
 
-    return result
+    return pd.Series(
+        result,
+        index=series.index
+    )
 
 
 
@@ -90,51 +105,73 @@ def calculate(df):
 
     # =================================
     # True Range
-    # First bar = High-Low
+    # Vectorized
     # =================================
 
-    tr = pd.Series(
-        0.0,
-        index=df.index
+    prev_close = close.shift(1)
+
+
+    tr1 = high - low
+
+    tr2 = (
+        high
+        -
+        prev_close
+    ).abs()
+
+    tr3 = (
+        low
+        -
+        prev_close
+    ).abs()
+
+
+    tr = pd.concat(
+        [
+            tr1,
+            tr2,
+            tr3,
+        ],
+        axis=1
+    ).max(
+        axis=1
     )
 
 
-    for i in range(len(df)):
+    # First bar = High-Low
 
-        if i == 0:
-
-            tr.iloc[i] = (
-                high.iloc[i]
-                -
-                low.iloc[i]
-            )
-
-        else:
-
-            tr.iloc[i] = max(
-                high.iloc[i] - low.iloc[i],
-                abs(
-                    high.iloc[i]
-                    -
-                    close.iloc[i - 1]
-                ),
-                abs(
-                    low.iloc[i]
-                    -
-                    close.iloc[i - 1]
-                )
-            )
+    tr.iloc[0] = (
+        high.iloc[0]
+        -
+        low.iloc[0]
+    )
 
 
 
     # =================================
     # Directional Movement
+    # Vectorized
     # =================================
+
+    up_move = (
+        high
+        -
+        high.shift(1)
+    )
+
+
+    down_move = (
+        low.shift(1)
+        -
+        low
+    )
+
 
     plus_dm = pd.Series(
         0.0,
         index=df.index
     )
+
 
     minus_dm = pd.Series(
         0.0,
@@ -142,44 +179,37 @@ def calculate(df):
     )
 
 
-    for i in range(1, len(df)):
-
-        up_move = (
-            high.iloc[i]
-            -
-            high.iloc[i - 1]
-        )
+    plus_condition = (
+        (up_move > down_move)
+        &
+        (up_move > 0)
+    )
 
 
-        down_move = (
-            low.iloc[i - 1]
-            -
-            low.iloc[i]
-        )
+    minus_condition = (
+        (down_move > up_move)
+        &
+        (down_move > 0)
+    )
 
 
-        if (
-            up_move > down_move
-            and
-            up_move > 0
-        ):
-
-            plus_dm.iloc[i] = up_move
+    plus_dm.loc[
+        plus_condition
+    ] = up_move.loc[
+        plus_condition
+    ]
 
 
-        elif (
-            down_move > up_move
-            and
-            down_move > 0
-        ):
-
-            minus_dm.iloc[i] = down_move
+    minus_dm.loc[
+        minus_condition
+    ] = down_move.loc[
+        minus_condition
+    ]
 
 
 
     # =================================
     # Wilder RMA
-    # DI Length = 10
     # =================================
 
     smooth_tr = rma(
@@ -279,14 +309,12 @@ def calculate(df):
 
     # =================================
     # ADX
-    # ADX Smoothing = 5
     # =================================
 
     adx = rma(
         dx,
         ADX_SMOOTH
     )
-
 
 
     result["ADX"] = adx
@@ -306,6 +334,7 @@ def calculate(df):
         .expanding()
         .min()
     )
+
 
     adx_max = (
         result["ADX"]
@@ -347,8 +376,7 @@ def calculate(df):
     result["ADX_SLOPE"] = (
         result["ADX"]
         -
-        result["ADX"]
-        .shift(1)
+        result["ADX"].shift(1)
     )
 
 
@@ -388,4 +416,3 @@ def calculate(df):
 
 
     return result
-

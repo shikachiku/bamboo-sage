@@ -76,6 +76,10 @@ def load_raw(symbol, timeframe, source="tv"):
 # Save Analysis
 # ======================================
 
+# ======================================
+# Save Analysis
+# ======================================
+
 def save_analysis(
     symbol,
     timeframe,
@@ -88,24 +92,47 @@ def save_analysis(
         / "analysis"
     )
 
+
     folder.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    filename = folder / f"{timeframe}.csv"
 
-    dataframe.to_csv(
-        filename,
-        index=False,
+    filename = (
+        folder
+        / f"{timeframe}.csv"
     )
 
-    print(f"Saved : {filename}")
+
+    temp_filename = (
+        folder
+        / f"{timeframe}.tmp"
+    )
+
+
+    dataframe.to_csv(
+        temp_filename,
+        index=False,
+        float_format="%.6f",
+        na_rep="",
+    )
+
+
+    temp_filename.replace(
+        filename
+    )
+
+
+    print(
+        f"Saved : {filename}"
+    )
 
 
 # ======================================
 # Process
 # ======================================
+
 
 def process(
     symbol,
@@ -113,6 +140,9 @@ def process(
     source="tv",
 ):
 
+    import time
+
+    total_start = time.perf_counter()
 
     df = load_raw(
         symbol,
@@ -120,61 +150,75 @@ def process(
         source,
     )
 
-
     if df is None:
         return
 
+    print()
+    print(f"[{symbol['Name']} {timeframe}]")
 
     # -----------------------------
     # Wick
     # -----------------------------
-
+    start = time.perf_counter()
     df = wick(df)
+    print(f"Wick             : {time.perf_counter() - start:.3f} sec")
 
     # -----------------------------
     # Heikin Ashi
     # -----------------------------
-
+    start = time.perf_counter()
     df = heikin_ashi(df)
-    
-    
+    print(f"Heikin Ashi      : {time.perf_counter() - start:.3f} sec")
+
     # -----------------------------
     # ADX
     # -----------------------------
+    start = time.perf_counter()
     df = adx(df)
-    
+    print(f"ADX              : {time.perf_counter() - start:.3f} sec")
+
     # -----------------------------
     # HighLow5
     # -----------------------------
+    start = time.perf_counter()
     df = highlow5(df)
-    
+    print(f"HighLow5         : {time.perf_counter() - start:.3f} sec")
+
     # -----------------------------
     # Swing
     # -----------------------------
+    start = time.perf_counter()
     df = swing(df)
-    
+    print(f"Swing            : {time.perf_counter() - start:.3f} sec")
+
     # -----------------------------
     # MACD
     # -----------------------------
+    start = time.perf_counter()
     df = macd(df)
-    
+    print(f"MACD             : {time.perf_counter() - start:.3f} sec")
+
     # -----------------------------
     # Stochastic
     # -----------------------------
+    start = time.perf_counter()
     df = stochastic(df)
-    
+    print(f"Stochastic       : {time.perf_counter() - start:.3f} sec")
+
     # -----------------------------
     # Moving Average
     # -----------------------------
-
+    start = time.perf_counter()
     df = moving_average(df)
-    
+    print(f"Moving Average   : {time.perf_counter() - start:.3f} sec")
 
     save_analysis(
         symbol,
         timeframe,
         df,
     )
+
+    print(f"TOTAL            : {time.perf_counter() - total_start:.3f} sec")
 
 # ======================================
 # Process One Symbol

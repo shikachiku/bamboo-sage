@@ -76,13 +76,39 @@ def load_symbols():
 # Load latest csv
 # =====================================
 
-def load_latest_csv(path):
+def load_latest_csv(path, cache=None):
 
+    # -----------------------------
+    # Cache check
+    # -----------------------------
+
+    if cache is not None:
+
+        key = str(path)
+
+        if key in cache:
+
+            return cache[key]
+
+
+    # -----------------------------
+    # File check
+    # -----------------------------
 
     if not path.exists():
 
-        return None, None
+        result = (None, None)
 
+        if cache is not None:
+            cache[str(path)] = result
+
+        return result
+
+
+
+    # -----------------------------
+    # Load
+    # -----------------------------
 
     data = pd.read_csv(
         path
@@ -91,7 +117,13 @@ def load_latest_csv(path):
 
     if len(data) == 0:
 
-        return None, None
+        result = (None, None)
+
+        if cache is not None:
+            cache[str(path)] = result
+
+        return result
+
 
 
     latest = data.iloc[-1]
@@ -106,7 +138,23 @@ def load_latest_csv(path):
         previous = None
 
 
-    return latest, previous
+
+    result = (
+        latest,
+        previous
+    )
+
+
+    # -----------------------------
+    # Save cache
+    # -----------------------------
+
+    if cache is not None:
+
+        cache[str(path)] = result
+
+
+    return result
 
 
 
@@ -326,8 +374,11 @@ def get_state(
 # Create symbol data
 # =====================================
 
-def create_symbol_row(folder, name):
-
+def create_symbol_row(
+    folder,
+    name,
+    cache
+):
 
     result = {
 
@@ -355,7 +406,8 @@ def create_symbol_row(folder, name):
 
 
         latest, previous = load_latest_csv(
-            csv_file
+            csv_file,
+            cache
         )
 
 
@@ -545,11 +597,18 @@ def create_symbol_row(folder, name):
 
 def create_report():
 
-
     symbols = load_symbols()
 
 
     rows = []
+
+
+    # =================================
+    # CSV cache
+    # =================================
+
+    cache = {}
+
 
 
     dates = {
@@ -559,6 +618,7 @@ def create_report():
         "DAY_DATE": ""
 
     }
+
 
 
     for _, item in symbols.iterrows():
@@ -573,6 +633,7 @@ def create_report():
         )
 
 
+
         if dates["MONTH_DATE"] == "":
 
 
@@ -582,7 +643,9 @@ def create_report():
                 latest, previous = load_latest_csv(
 
                     analysis_dir
-                    / filename
+                    / filename,
+
+                    cache
 
                 )
 
@@ -598,16 +661,19 @@ def create_report():
                     )
 
 
+
         rows.append(
 
             create_symbol_row(
 
                 item["Folder"],
-                item["Name"]
+                item["Name"],
+                cache
 
             )
 
         )
+
 
 
     df = pd.DataFrame(

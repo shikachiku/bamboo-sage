@@ -38,6 +38,9 @@ def ema(series, length):
 
 def calculate(data):
 
+    import numpy as np
+
+
     result = data.copy()
 
 
@@ -115,18 +118,66 @@ def calculate(data):
 
 
     # ===================================
-    # Cross Signal
+    # MACD Cross
+    # NumPy Vectorized
     # ===================================
 
-    result["MACD_CROSS"] = ""
-    
-        # ===================================
+    macd = (
+        result["MACD"]
+        .to_numpy()
+    )
+
+
+    signal = (
+        result["MACD_SIGNAL"]
+        .to_numpy()
+    )
+
+
+    cross = np.full(
+        len(result),
+        "",
+        dtype=object
+    )
+
+
+    golden = (
+        (macd[:-1] <= signal[:-1])
+        &
+        (macd[1:] > signal[1:])
+    )
+
+
+    dead = (
+        (macd[:-1] >= signal[:-1])
+        &
+        (macd[1:] < signal[1:])
+    )
+
+
+    cross[1:][golden] = "GOLDEN"
+
+    cross[1:][dead] = "DEAD"
+
+
+    result["MACD_CROSS"] = cross
+
+
+
+    # ===================================
     # MACD Level
     # ===================================
 
-    macd_min = result["MACD"].min()
+    macd_min = (
+        result["MACD"]
+        .min()
+    )
 
-    macd_max = result["MACD"].max()
+
+    macd_max = (
+        result["MACD"]
+        .max()
+    )
 
 
     if macd_max != macd_min:
@@ -162,55 +213,6 @@ def calculate(data):
         result["MACD_SLOPE"]
         .fillna(0)
     )
-
-
-
-    for i in range(1, len(result)):
-
-
-        # Golden Cross
-
-        if (
-            result["MACD"].iloc[i - 1]
-            <=
-            result["MACD_SIGNAL"].iloc[i - 1]
-
-            and
-
-            result["MACD"].iloc[i]
-            >
-            result["MACD_SIGNAL"].iloc[i]
-        ):
-
-            result.iloc[
-                i,
-                result.columns.get_loc(
-                    "MACD_CROSS"
-                )
-            ] = "GOLDEN"
-
-
-
-        # Dead Cross
-
-        elif (
-            result["MACD"].iloc[i - 1]
-            >=
-            result["MACD_SIGNAL"].iloc[i - 1]
-
-            and
-
-            result["MACD"].iloc[i]
-            <
-            result["MACD_SIGNAL"].iloc[i]
-        ):
-
-            result.iloc[
-                i,
-                result.columns.get_loc(
-                    "MACD_CROSS"
-                )
-            ] = "DEAD"
 
 
 

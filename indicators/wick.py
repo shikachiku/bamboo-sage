@@ -15,7 +15,7 @@ INDICATOR = "wick"
 
 def calculate(data):
 
-    result = data.copy()
+    result = data
 
 
     # ======================================
@@ -126,41 +126,37 @@ def calculate(data):
 
     # ======================================
     # Wick Type
+    # Vectorized
     # ======================================
 
-    def wick_type(row):
-
-        upper = row["UPPER_WICK"]
-        lower = row["LOWER_WICK"]
+    result["WICK_TYPE"] = "NONE"
 
 
-        if upper == 0 and lower == 0:
-
-            return "NONE"
-
-
-        elif upper > lower:
-
-            return "UPPER"
-
-
-        elif lower > upper:
-
-            return "LOWER"
-
-
-        else:
-
-            return "BOTH"
+    result.loc[
+        result["UPPER_WICK"]
+        >
+        result["LOWER_WICK"],
+        "WICK_TYPE"
+    ] = "UPPER"
 
 
 
-    result["WICK_TYPE"] = (
-        result.apply(
-            wick_type,
-            axis=1
-        )
-    )
+    result.loc[
+        result["LOWER_WICK"]
+        >
+        result["UPPER_WICK"],
+        "WICK_TYPE"
+    ] = "LOWER"
+
+
+
+    result.loc[
+        result["UPPER_WICK"]
+        ==
+        result["LOWER_WICK"],
+        "WICK_TYPE"
+    ] = "BOTH"
+
 
 
     return result
