@@ -693,12 +693,10 @@ def create_report():
 
 def save_report(df, dates):
 
-
     OUTPUT_DIR.mkdir(
         parents=True,
         exist_ok=True
     )
-
 
     REPORT_ROOT.mkdir(
         parents=True,
@@ -777,7 +775,6 @@ def save_report(df, dates):
 
     for col in adx_columns:
 
-
         if col not in df.columns:
 
             continue
@@ -837,7 +834,7 @@ def save_report(df, dates):
 
 
     # =================================
-    # Save
+    # Save CSV
     # =================================
 
     with open(
@@ -846,7 +843,6 @@ def save_report(df, dates):
         encoding="utf-8-sig",
         newline=""
     ) as f:
-
 
         f.write(
             f"REPORT_DATE,{report_time}\n"
@@ -880,7 +876,7 @@ def save_report(df, dates):
 
 
     # =================================
-    # Update latest
+    # Update latest CSV
     # =================================
 
     with open(
@@ -888,7 +884,6 @@ def save_report(df, dates):
         "r",
         encoding="utf-8-sig"
     ) as src:
-
 
         content = src.read()
 
@@ -898,7 +893,6 @@ def save_report(df, dates):
         "w",
         encoding="utf-8-sig"
     ) as dst:
-
 
         dst.write(
             content
@@ -910,7 +904,7 @@ def save_report(df, dates):
     )
 
 
-     # =================================
+    # =================================
     # Save Excel from template
     # =================================
 
@@ -959,6 +953,22 @@ def save_report(df, dates):
     # Clear old data area
     # -----------------------------
 
+    # 既存の結合セルを解除
+    for merged_range in list(
+        sheet.merged_cells.ranges
+    ):
+
+        if merged_range.min_row >= 7:
+
+            sheet.unmerge_cells(
+                str(merged_range)
+            )
+
+
+    # -----------------------------
+    # Clear old values
+    # -----------------------------
+
     for row in sheet.iter_rows(
         min_row=7
     ):
@@ -966,7 +976,6 @@ def save_report(df, dates):
         for cell in row:
 
             cell.value = None
-
 
 
     # -----------------------------
@@ -986,16 +995,44 @@ def save_report(df, dates):
     sheet["B4"] = dates["DAY_DATE"]
 
 
-
-    # -----------------------------
+    # =================================
     # Table Header
-    # -----------------------------
+    # =================================
 
     start_row = 6
 
 
+    headers = [
+
+        "",
+        "SYMBOL",
+
+        "MONTH_ADX",
+        "MONTH_DI",
+        "MONTH_STATE",
+        "MONTH_HA2",
+        "MONTH_CLOSE",
+        "MONTH_5HMA",
+
+        "WEEK_ADX",
+        "WEEK_DI",
+        "WEEK_STATE",
+        "WEEK_HA2",
+        "WEEK_CLOSE",
+        "WEEK_5HMA",
+
+        "DAY_ADX",
+        "DAY_DI",
+        "DAY_STATE",
+        "DAY_HA2",
+        "DAY_CLOSE",
+        "DAY_5HMA",
+
+    ]
+
+
     for col, value in enumerate(
-        report_df.columns,
+        headers,
         1
     ):
 
@@ -1006,28 +1043,349 @@ def save_report(df, dates):
         )
 
 
-
-    # -----------------------------
+    # =================================
     # Table Data
-    # -----------------------------
+    # =================================
 
-    for r, row in enumerate(
-        report_df.itertuples(index=False),
-        start_row + 1
-    ):
+    excel_row = start_row + 1
 
 
-        for c, value in enumerate(
-            row,
-            1
-        ):
+    for _, row in report_df.iterrows():
 
-            sheet.cell(
-                r,
-                c,
-                value
-            )
+        top_row = excel_row
+        bottom_row = excel_row + 1
 
+
+        # ---------------------------------
+        # Blank column
+        # ---------------------------------
+
+        sheet.cell(
+            top_row,
+            1,
+            ""
+        )
+
+        sheet.cell(
+            bottom_row,
+            1,
+            ""
+        )
+
+
+        # ---------------------------------
+        # SYMBOL
+        # ---------------------------------
+
+        sheet.cell(
+            top_row,
+            2,
+            row["SYMBOL"]
+        )
+
+
+        # =================================
+        # MONTH
+        # =================================
+
+        # ADX
+        sheet.cell(
+            top_row,
+            3,
+            row["MONTH_PREV_ADX"]
+        )
+
+        sheet.cell(
+            bottom_row,
+            3,
+            row["MONTH_ADX"]
+        )
+
+
+        # DI
+        sheet.cell(
+            top_row,
+            4,
+            row["MONTH_PREV_DI"]
+        )
+
+        sheet.cell(
+            bottom_row,
+            4,
+            row["MONTH_DI"]
+        )
+
+
+        # STATE
+        sheet.cell(
+            top_row,
+            5,
+            row["MONTH_STATE"]
+        )
+
+
+        # HA2
+        sheet.cell(
+            top_row,
+            6,
+            row["MONTH_HA2"]
+        )
+
+
+        # CLOSE
+        sheet.cell(
+            top_row,
+            7,
+            row["MONTH_CLOSE"]
+        )
+
+
+        # 5HMA
+        sheet.cell(
+            top_row,
+            8,
+            row["MONTH_HIGH5MA"]
+        )
+
+        sheet.cell(
+            bottom_row,
+            8,
+            row["MONTH_LOW5MA"]
+        )
+
+
+        # =================================
+        # WEEK
+        # =================================
+
+        # ADX
+        sheet.cell(
+            top_row,
+            9,
+            row["WEEK_PREV_ADX"]
+        )
+
+        sheet.cell(
+            bottom_row,
+            9,
+            row["WEEK_ADX"]
+        )
+
+
+        # DI
+        sheet.cell(
+            top_row,
+            10,
+            row["WEEK_PREV_DI"]
+        )
+
+        sheet.cell(
+            bottom_row,
+            10,
+            row["WEEK_DI"]
+        )
+
+
+        # STATE
+        sheet.cell(
+            top_row,
+            11,
+            row["WEEK_STATE"]
+        )
+
+
+        # HA2
+        sheet.cell(
+            top_row,
+            12,
+            row["WEEK_HA2"]
+        )
+
+
+        # CLOSE
+        sheet.cell(
+            top_row,
+            13,
+            row["WEEK_CLOSE"]
+        )
+
+
+        # 5HMA
+        sheet.cell(
+            top_row,
+            14,
+            row["WEEK_HIGH5MA"]
+        )
+
+        sheet.cell(
+            bottom_row,
+            14,
+            row["WEEK_LOW5MA"]
+        )
+
+
+        # =================================
+        # DAY
+        # =================================
+
+        # ADX
+        sheet.cell(
+            top_row,
+            15,
+            row["DAY_PREV_ADX"]
+        )
+
+        sheet.cell(
+            bottom_row,
+            15,
+            row["DAY_ADX"]
+        )
+
+
+        # DI
+        sheet.cell(
+            top_row,
+            16,
+            row["DAY_PREV_DI"]
+        )
+
+        sheet.cell(
+            bottom_row,
+            16,
+            row["DAY_DI"]
+        )
+
+
+        # STATE
+        sheet.cell(
+            top_row,
+            17,
+            row["DAY_STATE"]
+        )
+
+
+        # HA2
+        sheet.cell(
+            top_row,
+            18,
+            row["DAY_HA2"]
+        )
+
+
+        # CLOSE
+        sheet.cell(
+            top_row,
+            19,
+            row["DAY_CLOSE"]
+        )
+
+
+        # 5HMA
+        sheet.cell(
+            top_row,
+            20,
+            row["DAY_HIGH5MA"]
+        )
+
+        sheet.cell(
+            bottom_row,
+            20,
+            row["DAY_LOW5MA"]
+        )
+
+
+        # =================================
+        # Merge cells
+        # =================================
+
+        # SYMBOL
+        sheet.merge_cells(
+            start_row=top_row,
+            start_column=2,
+            end_row=bottom_row,
+            end_column=2
+        )
+
+
+        # MONTH
+        sheet.merge_cells(
+            start_row=top_row,
+            start_column=5,
+            end_row=bottom_row,
+            end_column=5
+        )
+
+        sheet.merge_cells(
+            start_row=top_row,
+            start_column=6,
+            end_row=bottom_row,
+            end_column=6
+        )
+
+        sheet.merge_cells(
+            start_row=top_row,
+            start_column=7,
+            end_row=bottom_row,
+            end_column=7
+        )
+
+
+        # WEEK
+        sheet.merge_cells(
+            start_row=top_row,
+            start_column=11,
+            end_row=bottom_row,
+            end_column=11
+        )
+
+        sheet.merge_cells(
+            start_row=top_row,
+            start_column=12,
+            end_row=bottom_row,
+            end_column=12
+        )
+
+        sheet.merge_cells(
+            start_row=top_row,
+            start_column=13,
+            end_row=bottom_row,
+            end_column=13
+        )
+
+
+        # DAY
+        sheet.merge_cells(
+            start_row=top_row,
+            start_column=17,
+            end_row=bottom_row,
+            end_column=17
+        )
+
+        sheet.merge_cells(
+            start_row=top_row,
+            start_column=18,
+            end_row=bottom_row,
+            end_column=18
+        )
+
+        sheet.merge_cells(
+            start_row=top_row,
+            start_column=19,
+            end_row=bottom_row,
+            end_column=19
+        )
+
+
+        # ---------------------------------
+        # Next symbol
+        # ---------------------------------
+
+        excel_row += 2
+
+
+    # =================================
+    # Save Excel
+    # =================================
 
     workbook.save(
         excel_file
